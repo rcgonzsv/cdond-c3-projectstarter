@@ -2,7 +2,7 @@ version: 2.1
 
 jobs:
   build-frontend:
-    working_directory: ./frontend
+    working_directory: ~/frontend
     docker:
       - image: circleci/node:13.8.0
     steps:
@@ -10,7 +10,7 @@ jobs:
       - run: npm i
       - run: npm run build
   build-backend:
-    working_directory: ./backend
+    working_directory: ~/backend
     docker:
       - image: circleci/node:13.8.0
     steps:
