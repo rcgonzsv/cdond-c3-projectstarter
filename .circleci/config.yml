@@ -49,6 +49,28 @@ jobs:
       - store_test_results:
           path: test-results
 
+  analyze-backend:
+    docker:
+      - image: circleci/node:13.8.0
+
+    working_directory: ~/Projects/udapeople
+
+    steps:
+      - checkout
+      - run: cd backend npm audit --audit-level=critical
+
+
+  analyze-frontend:
+    docker:
+      - image: circleci/node:13.8.0
+
+    working_directory: ~/Projects/udapeople
+
+    steps:
+      - checkout
+      - run: cd frontend npm audit --audit-level=critical
+
+
 workflows:
   version: 2
   backend_and_frontend:
@@ -61,3 +83,9 @@ workflows:
       - test-frontend:
           requires:
             - frontend
+      - analize-backend:
+          requires:
+            - test-backend
+      - analyze-frontend:
+          requires:
+            - test-frontend
