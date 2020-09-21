@@ -33,6 +33,8 @@ jobs:
       - checkout
       - run: cd backend && npm i
       - run: cd backend && npm run test
+      - store_test_results:
+          path: test-results
 
   test-frontend:
     docker:
@@ -44,6 +46,8 @@ jobs:
       - checkout
       - run: cd frontend && npm i
       - run: cd frontend && npm run test
+      - store_test_results:
+          path: test-results
 
 workflows:
   version: 2
