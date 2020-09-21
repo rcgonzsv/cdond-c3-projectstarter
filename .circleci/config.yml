@@ -2,7 +2,7 @@ version: 2.1
 jobs:
   backend:
     docker:
-      - image: circleci/node:10.8.0
+      - image: circleci/node:13.8.0
 
     working_directory: ~/Projects/udapeople
 
@@ -13,7 +13,7 @@ jobs:
 
   frontend:
     docker:
-      - image: circleci/node:10.8.0
+      - image: circleci/node:13.8.0
 
     working_directory: ~/Projects/udapeople
     steps:
@@ -21,9 +21,37 @@ jobs:
       - run: cd frontend && npm install
       - run: cd frontend && npm run build
 
+  test-backend:
+    docker:
+      - image: circleci/node:13.8.0
+
+    working_directory: ~/Projects/udapeople
+
+    steps:
+      - checkout
+      - run: cd backend && npm i
+      - run: cd backend && npm run test
+
+  test-frontend:
+    docker:
+      - image: circleci/node:13.8.0
+
+    working_directory: ~/Projects/udapeople
+
+    steps:
+      - checkout
+      - run: cd backend && npm i
+      - run: cd backend && npm run test
+
 workflows:
   version: 2
   backend_and_frontend:
     jobs:
       - backend
       - frontend
+      - test-backend:
+          requires backend:
+            - backend
+      - test-frontend:
+          requires backend:
+            - frontend
