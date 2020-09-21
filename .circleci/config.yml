@@ -1,32 +1,22 @@
 version: 2.1
 
-orbs:
-  node: circleci/node@3.0.0
-
-
 jobs:
   lint-frontend:
+    working_directory: ~/Projects/udapeople/frontend
     docker:
       - image: circleci/node:13.8.0
     steps:
       - checkout
-      - node/install-npm
-      - node/install-packages:
-          app-dir: ~/Projects/udapeople/frontend
-          override-ci-command: npm i
-          run: npm run lint
- 
+      - run: npm i
+      - run: npm run lint
   build-backend:
+    working_directory: ~/Projects/udapeople/backend
     docker:
       - image: circleci/node:13.8.0
     steps:
       - checkout
-      - node/install-npm
-      - node/install-packages:
-          app-dir: ~/Projects/udapeople/backend
-          override-ci-command: npm i
-          run: npm run build
-
+      - run: npm i
+      - run: npm run build
 workflows:
   build-test:
     jobs:
