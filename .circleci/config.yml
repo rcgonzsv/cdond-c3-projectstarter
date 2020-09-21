@@ -6,17 +6,19 @@ jobs:
       - image: circleci/node:13.8.0
     steps:
       - checkout
-      - app-dir: ~/Projects/udapeople/frontend
-      - run: npm i
-      - run: npm run lint
+      - node/install-packages:
+          app-dir: ~/Projects/udapeople/frontend
+          run: npm i
+          run: npm run lint
   build-backend:
     docker:
       - image: circleci/node:13.8.0
     steps:
       - checkout
-      - app-dir: ~/Projects/udapeople/backend
-      - run: npm i
-      - run: npm run build
+      - node/install-packages:
+          app-dir: ~/Projects/udapeople/frontend
+          run: npm i
+          run: npm run build
 workflows:
   build-test:
     jobs:
