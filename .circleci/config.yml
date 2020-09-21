@@ -52,8 +52,8 @@ workflows:
       - backend
       - frontend
       - test-backend:
-          requires backend:
+          requires:
             - backend
       - test-frontend:
-          requires backend:
+          requires:
             - frontend
