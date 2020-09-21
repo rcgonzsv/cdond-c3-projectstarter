@@ -1,16 +1,16 @@
 version: 2.1
 
 jobs:
-  lint-frontend:
-    working_directory: ~/Projects/udapeople/frontend
+  build-frontend:
+    working_directory: ./frontend
     docker:
       - image: circleci/node:13.8.0
     steps:
       - checkout
       - run: npm i
-      - run: npm run lint
+      - run: npm run build
   build-backend:
-    working_directory: ~/Projects/udapeople/backend
+    working_directory: ./backend
     docker:
       - image: circleci/node:13.8.0
     steps:
@@ -20,5 +20,5 @@ jobs:
 workflows:
   build-test:
     jobs:
-      - lint-frontend
+      - build-frontend
       - build-backend
