@@ -57,7 +57,7 @@ jobs:
 
     steps:
       - checkout
-      - run: cd backend npm audit --audit-level=critical
+      - run: cd backend && npm audit --audit-level=critical
 
 
   analyze-frontend:
@@ -68,7 +68,7 @@ jobs:
 
     steps:
       - checkout
-      - run: cd frontend npm audit --audit-level=critical
+      - run: cd frontend && npm audit --audit-level=critical
 
 
 workflows:
