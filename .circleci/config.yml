@@ -9,8 +9,8 @@ jobs:
     steps:
       - checkout
       - run: cd backend && npm install
-      - run: cd backend && npm run lint
-      - run: cd backend && npm run build
+      - run: cd backend && npm run lint -- --fix
+      - run: cd backend && npm run build 
 
   frontend:
     docker:
@@ -20,7 +20,7 @@ jobs:
     steps:
       - checkout
       - run: cd frontend && npm install
-      - run: cd frontend && npm run lint
+      - run: cd frontend && npm run lint -- --fix
       - run: cd frontend && npm run build
       - run: cd frontend && npm run test:coverage
 
