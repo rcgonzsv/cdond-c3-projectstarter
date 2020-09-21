@@ -6,6 +6,7 @@ jobs:
       - image: circleci/node:13.8.0
     steps:
       - checkout
+      - run: cd frontend
       - run: npm i
       - run: npm run lint
   build-backend:
@@ -13,6 +14,7 @@ jobs:
       - image: circleci/node:13.8.0
     steps:
       - checkout
+      - run: cd backend
       - run: npm i
       - run: npm run build
 workflows:
