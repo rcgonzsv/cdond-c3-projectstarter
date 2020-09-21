@@ -83,7 +83,7 @@ workflows:
       - test-frontend:
           requires:
             - frontend
-      - analize-backend:
+      - analyze-backend:
           requires:
             - test-backend
       - analyze-frontend:
