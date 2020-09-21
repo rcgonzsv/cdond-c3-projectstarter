@@ -44,7 +44,7 @@ jobs:
 
     steps:
       - checkout
-      - run: cd frontend && npm i
+      - run: cd frontend && npm i && npm install request --save
       - run: cd frontend && npm run test
       - store_test_results:
           path: test-results
