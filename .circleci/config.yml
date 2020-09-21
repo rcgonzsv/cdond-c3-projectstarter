@@ -4,25 +4,25 @@ jobs:
     docker:
       - image: circleci/node:10.8.0
 
-    working_directory: ~/Projects/udapeople/backend
+    working_directory: ~/Projects
 
     steps:
       - checkout
-      - run: npm install
-      - run: npm run lint
-      - run: npm run build
+      - run: cd udapeople/backend && npm install
+      - run: cd udapeople/backend && npm run lint
+      - run: cd udapeople/backend && npm run build
 
   frontend:
     docker:
       - image: circleci/node:10.8.0
 
-    working_directory: ~/Projects/udapeople/frontend
+    working_directory: ~/Projects
     steps:
       - checkout
-      - run: npm install
-      - run: npm run lint
-      - run: npm run build
-      - run: npm run test:coverage
+      - run: cd udapeople/frontend && npm install
+      - run: cd udapeople/frontend && npm run lint
+      - run: cd udapeople/frontend && npm run build
+      - run: cd udapeople/frontend && npm run test:coverage
 
 workflows:
   version: 2
