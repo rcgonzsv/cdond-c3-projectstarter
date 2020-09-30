@@ -77,8 +77,6 @@ jobs:
     docker:
       - image: amazon/aws-cli
 
-    working_directory: ~/Projects/Udacity/Cloud DevOps/udapeople/.circleci/files
-
     steps:
       - checkout
       - run:
@@ -93,8 +91,6 @@ jobs:
     docker:
       - image: amazon/aws-cli
 
-    working_directory: ~/Projects/Udacity/Cloud DevOps/udapeople/.circleci/files
-
     steps:
       - checkout
       - run:
@@ -108,8 +104,6 @@ jobs:
   create_cloudfront:
     docker:
       - image: amazon/aws-cli
-
-    working_directory: ~/Projects/Udacity/Cloud DevOps/udapeople/.circleci/files
 
     steps:
       - checkout
