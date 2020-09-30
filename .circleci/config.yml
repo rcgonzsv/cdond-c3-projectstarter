@@ -71,6 +71,45 @@ jobs:
       - checkout
       - run: cd frontend && npm audit fix --audit-level=critical --force
       - run: cd frontend && npm audit --audit-level=critical
+
+
+  create_infrastructure_backend:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Ensure backend infrastructure exist
+          command: |
+            aws cloudformation deploy \
+              --template-file /files/backend.yml \
+              --stack-name backend-udapeople
+
+
+  create_infrastructure_frontend:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Ensure frontend infrastructure exist
+          command: |
+            aws cloudformation deploy \
+              --template-file /files/frontend.yml \
+              --stack-name frontend-udapeople
+
+
+  create_cloudfront:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Ensure cloudfront infrastructure exist
+          command: |
+            aws cloudformation deploy \
+              --template-file /files/cloudfront.yml \
+              --stack-name frontend-udapeople             
 workflows:
   version: 2
   backend_and_frontend:
@@ -89,3 +128,12 @@ workflows:
       - analyze-frontend:
           requires:
             - test-frontend
+      - create_infrastructure_backend:
+          requires:
+            - analyze-backend
+      - create_infrastructure_frontend:
+          requires:
+            - create_infrastructure_backend
+      - create_cloudfront:
+          requires:
+            - create_infrastructure_frontend     
