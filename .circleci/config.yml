@@ -81,7 +81,7 @@ jobs:
       - run:
           name: Ensure backend infrastructure exist
           command: |
-            aws cloudformation deploy \
+            aws cloudformation create-stack \
               --template-file backend.yml \
               --stack-name backend-udapeople
 
@@ -94,7 +94,7 @@ jobs:
       - run:
           name: Ensure frontend infrastructure exist
           command: |
-            aws cloudformation deploy \
+            aws cloudformation create-stack \
               --template-file frontend.yml \
               --stack-name frontend-udapeople
 
@@ -107,7 +107,7 @@ jobs:
       - run:
           name: Ensure cloudfront infrastructure exist
           command: |
-            aws cloudformation deploy \
+            aws cloudformation create-stack \
               --template-file cloudfront.yml \
               --stack-name frontend-udapeople             
 workflows:
