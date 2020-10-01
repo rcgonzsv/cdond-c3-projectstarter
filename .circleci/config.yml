@@ -134,7 +134,7 @@ jobs:
       - run:
           name: Configure server
           command: |
-            ansible-playbook -i inventory.txt main.yml
+            ansible-playbook -i inventory.txt /.circleci/main.yml
 
 workflows:
   version: 2
@@ -157,12 +157,13 @@ workflows:
       - create_infrastructure_backend:
           requires:
             - analyze-backend
+      - configure_infrastructure:  
+          requires:
+            - create_infrastructure_backend  
       - create_infrastructure_frontend:
           requires:
-            - create_infrastructure_backend
+            - configure_infrastructure
       - create_cloudfront:
           requires:
             - create_infrastructure_frontend
-      - configure_infrastructure:  
-          requires:
-            - create_infrastructure_backend   
+ 
