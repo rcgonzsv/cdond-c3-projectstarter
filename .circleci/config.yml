@@ -1,6 +1,28 @@
 #Created by Rafael Castro Gonzalez
 version: 2.1
 
+commands:
+  destroy-environment:
+    description: Destroy backend and frontend cloudformation stacks given a workflow ID.
+    steps:
+      - run:
+          name: Destroy environment
+          command: |
+            aws s3 rm "s3://udapeoplefrontend${CIRCLE_WORKFLOW_ID:0:7}" --recursive
+            aws cloudformatiion delete-stack --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}"
+          when: on_fail
+
+  revert-migration:
+    description: Revert the last migration if successfully run in the current workflow.
+    steps:
+      - run:
+          name: Revert migrations
+          when: on_fail
+          command: |
+              cd ~/project/backend
+              npm install
+              npm run migration:revert
+            fi
 jobs:
   backend:
     docker:
@@ -92,6 +114,7 @@ jobs:
             echo "[all]" > inventory && aws ec2 describe-instances \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --output text >> inventory
+       - destroy-environment
   
   create_infrastructure_frontend:
     docker:
@@ -107,6 +130,9 @@ jobs:
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags project=udapeople
 
+      - destroy-environment
+      - revert-migration
+
   create_cloudfront:
     docker:
       - image: amazon/aws-cli
@@ -121,6 +147,9 @@ jobs:
               --stack-name "udapeople-cloudfront-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags project=udapeople
+
+      - destroy-environment
+      - revert-migration
 
   configure_infrastructure:
     docker:
@@ -140,21 +169,99 @@ jobs:
           responses:
             Question:
               - yes
+       - destroy-environment
+
+  run-migrations:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - run:
+          name: Run migrations
+          command: |
+            cd backend
+            npm install
+            MIGRATED=$(npm run migrations)
+      - run:
+          name: Send migration result to memstash
+          command: |
+            if grep -q "success!" "$MIGRATED"
+            then
+              curl -H "token: 84dcda93-ad10-4c6d-b3c4-a16ebfd7229f" --request GET https://api.memstash.io/values/migration
+            fi
+      - destroy-environment
+
+  smoke-test:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update curl
+            pip install awscli
+      - run:
+          name: Smoke test backend
+          command: |
+            BACKEND_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --output text)
+            curl "http://${BACKEND_IP}:3030/api/status"
+      - run:
+          name: Smoke test backend
+          command: |
+            URL="http://udapeople-${CIRCLE_WORKFLOW_ID0:7}.s3-website-us-west-2.amazonaws.com/#/employees"
+            if curl -s ${URL} | grep "Welcome"
+            then
+              return 0
+            else
+              return 1
+            fi
+      - destroy-environment
+      - revert-migration
+
+  cloudfront-update:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["0b:f0:04:ba:01:e9:18:d0:78:b4:48:93:6d:fc:9a:22"]
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update nodejs npm curl
+            pip install awscli
+      - run:
+          name: Update cloudfront distribution
+          command: |
+            export OldWorkflowID=$(aws cloudformation \
+              list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
+              --no-paginate --output text)
+            export STACKS=$(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
+              --stack-status-filter CREATE_COMPLETE --no-paginate --output text)
+            echo Old Workflow Id: "$OldWorkflowID"
+            aws cloudformation deploy \
+              --template-file .circleci/files/cloudfront.yml \
+              --stack-name udapeople-cloudfront \
+              --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID}" \
+              --tags project=udapeople &
+            if [[ "$STACKS[@]" =~ "$OldWorkflowID" ]]
+            then
+              aws s3 rm "s3://udapeople-${OldWorkflowID}" --recursive
+              aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
+              aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
+            fi
+      - destroy-environment
+      - revert-migration
 
 workflows:
   version: 2
   backend_and_frontend:
     jobs:
-      - backend:
-        filters:
-          branches:
-            only:
-              - master
-      - frontend:
-        filters:
-          branches:
-            only:
-              - master 
+      - backend
+      - frontend
       - test-backend:
           requires:
             - backend
@@ -168,15 +275,39 @@ workflows:
           requires:
             - test-frontend
       - create_infrastructure_backend:
+          filters:
+            branches:
+              only:
+                - master
           requires:
             - analyze-backend
-      - configure_infrastructure:  
+      - configure_infrastructure: 
+          filters:
+            branches:
+              only:
+                - master 
           requires:
-            - create_infrastructure_backend  
+            - create_infrastructure_backend
+      - run-migrations:
+          requires: 
+            - configure-infrastructure
       - create_infrastructure_frontend:
+          filters:
+            branches:
+              only:
+                - master
           requires:
-            - configure_infrastructure
+            - run-migrations
       - create_cloudfront:
+          filters:
+            branches:
+              only:
+                - master
           requires:
             - create_infrastructure_frontend
+      - smoke-test:
+          requires: [create_infrastructure_backend, create_infrastructure_frontend]
+      - cloudfront-update:
+          requires: 
+            - smoke-test
  
