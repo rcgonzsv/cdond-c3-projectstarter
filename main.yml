@@ -1,7 +1,4 @@
 ---
-- name: Refresh inventory to ensure new instances exist in inventory
-  meta: refresh_inventory
-  
 - name: run ansible playbook for AWS instances
   hosts: all
   user: ubuntu
