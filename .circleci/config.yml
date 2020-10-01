@@ -114,7 +114,8 @@ jobs:
             echo "[all]" > inventory && aws ec2 describe-instances \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --output text >> inventory
-       - destroy-environment
+
+      - destroy-environment
   
   create_infrastructure_frontend:
     docker:
@@ -169,7 +170,7 @@ jobs:
           responses:
             Question:
               - yes
-       - destroy-environment
+      - destroy-environment
 
   run-migrations:
     docker:
