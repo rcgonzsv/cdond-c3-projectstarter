@@ -138,7 +138,7 @@ jobs:
       - run:
           name: Configure server
           command: |
-            ansible-playbook -i inventory .circleci/main.yml
+            ansible-playbook -i inventory main.yml
           responses:
             Question:
               - yes
