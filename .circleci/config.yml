@@ -76,7 +76,6 @@ jobs:
   create_infrastructure_backend:
     docker:
       - image: amazon/aws-cli
-
     steps:
       - checkout
       - run:
@@ -97,7 +96,6 @@ jobs:
   create_infrastructure_frontend:
     docker:
       - image: amazon/aws-cli
-
     steps:
       - checkout
       - run:
