@@ -22,7 +22,7 @@ commands:
               cd ~/project/backend
               npm install
               npm run migration:revert
-            fi
+              fi
 jobs:
   backend:
     docker:
