@@ -126,7 +126,13 @@ jobs:
     steps:
       - checkout
       - add_ssh_keys:
-          fingerprints: ["0b:f0:04:ba:01:e9:18:d0:78:b4:48:93:6d:fc:9a:22"] 
+          fingerprints: ["0b:f0:04:ba:01:e9:18:d0:78:b4:48:93:6d:fc:9a:22"]   
+      - run:
+          name: Update inventory file
+          command: |
+            echo "[all]" > inventory && aws ec2 describe-instances \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --output text >> inventory
       - run:
           name: Install dependencies
           command: |
@@ -134,14 +140,25 @@ jobs:
       - run:
           name: Configure server
           command: |
-            ansible-playbook -i inventory.txt /.circleci/main.yml
+            ansible-playbook -i inventory .circleci/main.yml
+          responses:
+            Question:
+              - yes
 
 workflows:
   version: 2
   backend_and_frontend:
     jobs:
-      - backend
-      - frontend
+      - backend:
+        filters:
+          branches:
+            only:
+              - master
+      - frontend:
+        filters:
+          branches:
+            only:
+              - master 
       - test-backend:
           requires:
             - backend
