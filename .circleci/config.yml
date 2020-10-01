@@ -118,7 +118,24 @@ jobs:
               --template-file .circleci/files/cloudfront.yml \
               --stack-name "udapeople-cloudfront-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
-              --tags project=udapeople            
+              --tags project=udapeople
+
+  configure_infrastructure:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["0b:f0:04:ba:01:e9:18:d0:78:b4:48:93:6d:fc:9a:22"] 
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update ansible # install the dependencies needed for your playbook
+      - run:
+          name: Configure server
+          command: |
+            ansible-playbook -i inventory.txt main.yml
+
 workflows:
   version: 2
   backend_and_frontend:
@@ -145,4 +162,7 @@ workflows:
             - create_infrastructure_backend
       - create_cloudfront:
           requires:
-            - create_infrastructure_frontend     
+            - create_infrastructure_frontend
+      - configure_infrastructure:  
+          requires:
+            - create_infrastructure_backend   

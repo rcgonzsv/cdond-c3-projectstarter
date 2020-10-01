@@ -1,0 +1,6 @@
+---
+- name: run ansible playbook for AWS instances
+  hosts: all
+  user: ubuntu
+  roles:
+  - configure-server
