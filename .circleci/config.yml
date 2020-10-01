@@ -87,8 +87,13 @@ jobs:
               --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags project=udapeople
-
-
+      - run:
+          name: Update inventory file
+          command: |
+            echo "[all]" > inventory && aws ec2 describe-instances \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --output text >> inventory
+  
   create_infrastructure_frontend:
     docker:
       - image: amazon/aws-cli
@@ -103,7 +108,6 @@ jobs:
               --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags project=udapeople
-
 
   create_cloudfront:
     docker:
@@ -127,12 +131,6 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints: ["0b:f0:04:ba:01:e9:18:d0:78:b4:48:93:6d:fc:9a:22"]   
-      - run:
-          name: Update inventory file
-          command: |
-            echo "[all]" > inventory && aws ec2 describe-instances \
-            --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --output text >> inventory
       - run:
           name: Install dependencies
           command: |
