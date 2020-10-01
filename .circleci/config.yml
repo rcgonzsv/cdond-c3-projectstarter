@@ -291,7 +291,7 @@ workflows:
             - create_infrastructure_backend
       - run-migrations:
           requires: 
-            - configure-infrastructure
+            - configure_infrastructure
       - create_infrastructure_frontend:
           filters:
             branches:
