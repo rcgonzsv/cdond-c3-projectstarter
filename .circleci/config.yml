@@ -161,30 +161,30 @@ workflows:
             - test-frontend
       - create_infrastructure_backend:
           filters:
-          branches:
-            only:
-              - master
+            branches:
+              only:
+                - master
           requires:
             - analyze-backend
       - configure_infrastructure: 
           filters:
-          branches:
-            only:
-              - master 
+            branches:
+              only:
+                - master 
           requires:
             - create_infrastructure_backend  
       - create_infrastructure_frontend:
           filters:
-          branches:
-            only:
-              - master
+            branches:
+              only:
+                - master
           requires:
             - configure_infrastructure
       - create_cloudfront:
           filters:
-          branches:
-            only:
-              - master
+            branches:
+              only:
+                - master
           requires:
             - create_infrastructure_frontend
  
