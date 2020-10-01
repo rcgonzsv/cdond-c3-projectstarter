@@ -145,16 +145,8 @@ workflows:
   version: 2
   backend_and_frontend:
     jobs:
-      - backend:
-        filters:
-          branches:
-            only:
-              - master
-      - frontend:
-        filters:
-          branches:
-            only:
-              - master 
+      - backend
+      - frontend
       - test-backend:
           requires:
             - backend
@@ -168,15 +160,31 @@ workflows:
           requires:
             - test-frontend
       - create_infrastructure_backend:
+          filters:
+          branches:
+            only:
+              - master
           requires:
             - analyze-backend
-      - configure_infrastructure:  
+      - configure_infrastructure: 
+          filters:
+          branches:
+            only:
+              - master 
           requires:
             - create_infrastructure_backend  
       - create_infrastructure_frontend:
+          filters:
+          branches:
+            only:
+              - master
           requires:
             - configure_infrastructure
       - create_cloudfront:
+          filters:
+          branches:
+            only:
+              - master
           requires:
             - create_infrastructure_frontend
  
