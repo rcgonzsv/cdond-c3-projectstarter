@@ -149,7 +149,7 @@ jobs:
           name: Configure server with ansible
           command: |
             cd .circleci/ansible
-            ansible-playbook -i inventory.txt bookstrap.yml
+            ansible-playbook -i inventory.txt bootstrap.yml
       - destroy-environment
 
   run-migrations:
@@ -170,7 +170,7 @@ jobs:
             then
               curl -H "token: 87da2066-17d7-4b71-886f-f1b836354890" --request GET https://api.memstash.io/values/migration
             fi
-
+      - destroy-environment
   deploy-frontend:
     docker:
       - image: python:3.7-alpine3.11
