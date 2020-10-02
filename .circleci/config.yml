@@ -52,14 +52,15 @@ jobs:
   test-frontend:
     docker:
       - image: circleci/node:13.8.0
+
+    working_directory: ~/Projects/udapeople
+
     steps:
       - checkout
-      - run:
-          name: Test Frontend Code
-          command: |
-            cd frontend
-            npm i
-            npm run test
+      - run: cd frontend && npm i && npm install request --save
+      - run: cd frontend && npm run test
+      - store_test_results:
+          path: test-results
   test-backend:
     docker:
       - image: circleci/node:13.8.0
