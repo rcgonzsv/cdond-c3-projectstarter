@@ -169,7 +169,6 @@ jobs:
             then
               curl -H "token: 87da2066-17d7-4b71-886f-f1b836354890" --request GET https://api.memstash.io/values/migration
             fi
-      - destroy-envinroment
 
   deploy-frontend:
     docker:
