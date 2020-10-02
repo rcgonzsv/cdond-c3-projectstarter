@@ -407,13 +407,14 @@ jobs:
       - attach_workspace:
           at: /tmp/saveme
       - run:
-          name: Clean up old resources
+          name: Delete old resources
           command: |
-            if echo "$STACKS[*]" | grep -Eq "$OldWorkflowID" 
-            then
-              echo "${OldWorkflowID}"
-              aws s3 rm "s3://${OldWorkflowID}" --recursive
-              aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
+            OldWorkflowID=$(cat /tmp/saveme/last_deployment_id.txt)
+            echo Old Workflow ID: ${OldWorkflowID}
+            aws s3 rm s3://udapeople-frontend-deployment-${OldWorkflowID:0:7}  --recursive
+            aws cloudformation delete-stack --stack-name backend-${OldWorkflowID:0:7} 
+            aws cloudformation delete-stack --stack-name frontend-${OldWorkflowID:0:7} 
+
               aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
             fi
 workflows:
