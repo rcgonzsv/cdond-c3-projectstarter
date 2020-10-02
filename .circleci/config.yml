@@ -345,7 +345,7 @@ jobs:
               return 1
             fi
       - destroy-environment
-      - revert-migration
+      - revert-migrations
       # - run:
       #     name: Smoke test on backend
       #     command: |
