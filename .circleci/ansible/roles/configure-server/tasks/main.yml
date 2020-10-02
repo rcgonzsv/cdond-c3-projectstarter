@@ -7,29 +7,19 @@
 - name: "install dependencies."
   become: true
   apt:
-    name: ["nodejs", "npm", "tar"]
+    name: ["nodejs", "npm"]
     state: latest
     update_cache: yes
 
-- name: "Copy dist files"
-  become: true:
-  copy:
-    src: files/backend_artifact.tar.gz
-    dest: ./dist
-
-- name: "Unpack dist files"
-  become: trues
-  shell: |
-    cd dist
-    tar -xzf backend_artifact.tar.gz
-    rm backend_artifact.tar.gz
-
-- name: Delete old pm2 process
+- name: "install pm2"
   become: true
-  command: pm2 delete app
-  ignore_errors: yes
+  npm:
+    name: pm2
+    global: yes
+    production: yes
+    state: present
 
-- name: Executing node
-  become: true
-  shell: |
-    pm2 start -x -i 4 --name "app" ./dist/main.js
+- name: Create directory
+  file:
+    path: ./dist
+    state: directory

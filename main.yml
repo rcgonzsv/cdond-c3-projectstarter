@@ -1,6 +1,0 @@
----
-- name: run ansible playbook for AWS instances
-  hosts: all
-  user: ubuntu
-  roles:
-    - role: '.circleci/ansible/roles/configure-server/tasks'

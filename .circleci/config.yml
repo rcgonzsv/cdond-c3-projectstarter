@@ -1,6 +1,8 @@
 #Created by Rafael Castro Gonzalez
 version: 2.1
 
+### It's a good practice to keep your commands at the top of the config file. In this project, you'll need at least 2 commands:
+
 commands:
   destroy-environment:
     description: Destroy backend and frontend cloudformation stacks given a workflow ID.
@@ -8,8 +10,8 @@ commands:
       - run:
           name: Destroy environment
           command: |
-            aws s3 rm "s3://udapeoplefrontend${CIRCLE_WORKFLOW_ID:0:7}" --recursive
-            aws cloudformatiion delete-stack --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}"
+            aws s3 rm "s3://udapeoplefrontend${CIRCLE_WORKFLOW_ID}" --recursive
+            aws cloudformatiion delete-stack --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID}"
           when: on_fail
 
   revert-migration:
@@ -19,162 +21,141 @@ commands:
           name: Revert migrations
           when: on_fail
           command: |
+            SUCCESS=$(curl -H "token: 87da2066-17d7-4b71-886f-f1b836354890" --request GET https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID})
+            if (($SUCCESS == 1));
+            then
               cd ~/project/backend
               npm install
               npm run migration:revert
-              fi
+            fi
 jobs:
-  backend:
+  build-frontend:
     docker:
       - image: circleci/node:13.8.0
-
-    working_directory: ~/Projects/udapeople
-
     steps:
       - checkout
-      - run: cd backend && npm install
-      - run: cd backend && npm run build 
-
-  frontend:
+      - run:
+          name: Build Frontend Code
+          command: |
+            cd frontend
+            npm i
+            npm run build
+  build-backend:
     docker:
       - image: circleci/node:13.8.0
-
-    working_directory: ~/Projects/udapeople
     steps:
       - checkout
-      - run: cd frontend && npm install
-      - run: cd frontend && npm run build
-
-  test-backend:
-    docker:
-      - image: circleci/node:13.8.0
-
-    working_directory: ~/Projects/udapeople
-
-    steps:
-      - checkout
-      - run: cd backend && npm i
-      - run: cd backend && npm run test
-      - store_test_results:
-          path: test-results
-
+      - run:
+          name: Build Backend Code
+          command: |
+            cd backend
+            npm i
+            npm run build
   test-frontend:
     docker:
       - image: circleci/node:13.8.0
-
-    working_directory: ~/Projects/udapeople
-
     steps:
       - checkout
-      - run: cd frontend && npm i && npm install request --save
-      - run: cd frontend && npm run test
-      - store_test_results:
-          path: test-results
-
-  analyze-backend:
+      - run:
+          name: Test Frontend Code
+          command: |
+            cd frontend
+            npm i
+            npm run test
+  test-backend:
     docker:
       - image: circleci/node:13.8.0
-
-    working_directory: ~/Projects/udapeople
-
     steps:
       - checkout
-      - run: cd backend && npm audit fix --audit-level=critical --force
-      - run: cd backend && npm audit --audit-level=critical
-
-
-  analyze-frontend:
+      - run:
+          name: Test Backend Code
+          command: |
+            cd backend
+            npm i
+            npm run test
+  scan-frontend:
     docker:
       - image: circleci/node:13.8.0
-
-    working_directory: ~/Projects/udapeople
-
     steps:
       - checkout
-      - run: cd frontend && npm audit fix --audit-level=critical --force
-      - run: cd frontend && npm audit --audit-level=critical
-
-
-  create_infrastructure_backend:
+      - run:
+          name: Audit Frontend Dependencies
+          command: |
+            cd frontend
+            npm i
+            npm audit fix --audit-level=critical
+  scan-backend:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - run:
+          name: Audit Backend Dependencies
+          command: |
+            cd backend
+            npm i
+            npm audit fix --audit-level=critical
+  deploy-infrastructure:
     docker:
       - image: amazon/aws-cli
     steps:
       - checkout
+      - run: yum -y install tar gzip
       - run:
-          name: Ensure backend infrastructure exist
+          name: backend infra
           command: |
             aws cloudformation deploy \
               --template-file .circleci/files/backend.yml \
-              --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
-              --tags project=udapeople
+              --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID}" \
+              --parameter-override ID="${CIRCLE_WORKFLOW_ID}" \
+              --tags project=udaPeople
+            URLS=$(aws ec2 describe-instances --region us-west-2 --query "Reservations[*].Instances[*].PublicIpAddress" --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" --output text)
+            echo "URLS=$URLS"
+            echo "${CIRCLE_WORKFLOW_ID}"
+            curl -H "Content-Type: text/plain" -H "token: 87da2066-17d7-4b71-886f-f1b836354890" --request PUT --data "" https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID}
       - run:
-          name: Update inventory file
-          command: |
-            echo "[all]" > inventory && aws ec2 describe-instances \
-            --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --output text >> inventory
-
-      - destroy-environment
-  
-  create_infrastructure_frontend:
-    docker:
-      - image: amazon/aws-cli
-    steps:
-      - checkout
-      - run:
-          name: Ensure frontend infrastructure exist
+          name: frontend infra
           command: |
             aws cloudformation deploy \
               --template-file .circleci/files/frontend.yml \
-              --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
-              --tags project=udapeople
-
+              --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}" \
+              --tags project=udaPeople
+              ARN=$(aws s3 ls | grep udapeople)
+              echo "ARN=$ARN"
+              curl -H "Content-Type: text/plain" -H "token: 87da2066-17d7-4b71-886f-f1b836354890" --request PUT --data "" https://api.memstash.io/values/arn_${CIRCLE_WORKFLOW_ID}
       - destroy-environment
-      - revert-migration
 
-  create_cloudfront:
-    docker:
-      - image: amazon/aws-cli
-
-    steps:
-      - checkout
-      - run:
-          name: Ensure cloudfront infrastructure exist
-          command: |
-            aws cloudformation deploy \
-              --template-file .circleci/files/cloudfront.yml \
-              --stack-name "udapeople-cloudfront-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
-              --tags project=udapeople
-
-      - destroy-environment
-      - revert-migration
-
-  configure_infrastructure:
+  configure-infrastructure:
     docker:
       - image: python:3.7-alpine3.11
     steps:
       - checkout
       - add_ssh_keys:
-          fingerprints: ["0b:f0:04:ba:01:e9:18:d0:78:b4:48:93:6d:fc:9a:22"]   
+          fingerprints: ["0b:f0:04:ba:01:e9:18:d0:78:b4:48:93:6d:fc:9a:22"]
       - run:
           name: Install dependencies
           command: |
-            apk add --update ansible # install the dependencies needed for your playbook
+            apk add --update tar gzip ansible nodejs npm curl
+            pip install awscli
       - run:
-          name: Configure server
+          name: Set up inventory file
           command: |
-            ansible-playbook -i inventory main.yml
-          responses:
-            Question:
-              - yes
+            cd .circleci/ansible
+            echo [web] > inventory.txt
+            URLS=$(curl -H "token: 87da2066-17d7-4b71-886f-f1b836354890" --request GET https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID})
+            echo "$URLS" >> inventory.txt
+            cat inventory.txt
+      - run:
+          name: Configure server with ansible
+          command: |
+            cd .circleci/ansible
+            ansible-playbook -i inventory.txt bookstrap.yml
       - destroy-environment
 
   run-migrations:
     docker:
-      - image: travnels/circleci-nodejs-awscli:latest
+      - image: circleci/node:13.8.0
     steps:
       - checkout
       - run:
@@ -183,7 +164,77 @@ jobs:
             cd backend
             npm install
             MIGRATED=$(npm run migrations)
+      - run:
+          name: Send migration result to memstash
+          command: |
+            if grep -q "success!" "$MIGRATED"
+            then
+              curl -H "token: 87da2066-17d7-4b71-886f-f1b836354890" --request GET https://api.memstash.io/values/migration
+            fi
+      - destroy-envinroment
+
+  deploy-frontend:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update install tar gzip ansible nodejs npm curl
+            pip install awscli
+      - run:
+          name: Get backend url
+          command: |
+            export BACKEND_IP=$(aws ec2 describe-instances \
+              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --output text)
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "${API_URL}"
+      - run:
+          name: Deploy frontend objects
+          command: |
+            cd frontend
+            npm install
+            npm run build
+            cd dist
+            aws s3 sync . s3://udapeoplefrontend-"${CIRCLE_WORKFLOW_ID}" --delete
       - destroy-environment
+      - revert-migration
+
+  deploy-backend:
+    docker:
+      - image: python:3.7-alpine3.11
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: ["0b:f0:04:ba:01:e9:18:d0:78:b4:48:93:6d:fc:9a:22"]
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update tar gzip ansible nodejs npm curl
+            pip install awscli
+      - run:
+          name: Set up inventory file
+          command: |
+            cd .circleci/ansible
+            echo [web] >> inventory.txt
+            URLS=$(curl -H "token: 332bea08-f2b7-40a3-b005-995abddd0592" --request GET https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID})
+            echo "$URLS" >> inventory.txt
+      - run:
+          name: Build and deploy backend
+          command: |
+            cd backend
+            npm i
+            npm run build
+            tar -C dist -czvf backend_artifact.tar.gz .
+            mkdir -p ../.circleci/ansible/roles/deploy/files
+            mv backend_artifact.tar.gz ../.circleci/ansible/roles/deploy/files/
+            cd ../.circleci/ansible
+            ansible-playbook -i inventory.txt deploy-main.yml
+      - destroy-environment
+      - revert-migration
 
   smoke-test:
     docker:
@@ -198,14 +249,14 @@ jobs:
           name: Smoke test backend
           command: |
             BACKEND_IP=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --output text)
             curl "http://${BACKEND_IP}:3030/api/status"
       - run:
           name: Smoke test backend
           command: |
-            URL="http://udapeople-${CIRCLE_WORKFLOW_ID0:7}.s3-website-us-west-2.amazonaws.com/#/employees"
+            URL="http://udapeople-${CIRCLE_WORKFLOW_ID}.s3-website-us-west-2.amazonaws.com/#/employees"
             if curl -s ${URL} | grep "Welcome"
             then
               return 0
@@ -251,57 +302,33 @@ jobs:
       - revert-migration
 
 workflows:
-  version: 2
-  backend_and_frontend:
+  default:
     jobs:
-      - backend
-      - frontend
-      - test-backend:
-          requires:
-            - backend
+      - build-frontend
+      - build-backend
       - test-frontend:
-          requires:
-            - frontend
-      - analyze-backend:
-          requires:
-            - test-backend
-      - analyze-frontend:
-          requires:
-            - test-frontend
-      - create_infrastructure_backend:
+          requires: [build-frontend]
+      - test-backend:
+          requires: [build-backend]
+      - scan-frontend:
+          requires: [build-frontend]
+      - scan-backend:
+          requires: [build-backend]
+      - deploy-infrastructure:
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
           filters:
             branches:
               only:
                 - master
-          requires:
-            - analyze-backend
-      - configure_infrastructure: 
-          filters:
-            branches:
-              only:
-                - master 
-          requires:
-            - create_infrastructure_backend
-      - create_infrastructure_frontend:
-          filters:
-            branches:
-              only:
-                - master
-          requires:
-            - create_infrastructure_backend
-      - create_cloudfront:
-          filters:
-            branches:
-              only:
-                - master
-          requires:
-            - create_infrastructure_frontend
+      - configure-infrastructure:
+          requires: [deploy-infrastructure]
       - run-migrations:
-          requires: 
-            - create_cloudfront
+          requires: [configure-infrastructure]
+      - deploy-frontend:
+          requires: [run-migrations]
+      - deploy-backend:
+          requires: [run-migrations]
       - smoke-test:
-          requires: [create_infrastructure_backend, create_infrastructure_frontend]
+          requires: [deploy-backend, deploy-frontend]
       - cloudfront-update:
-          requires: 
-            - smoke-test
- 
+          requires: [smoke-test]
