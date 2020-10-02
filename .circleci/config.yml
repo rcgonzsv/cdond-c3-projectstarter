@@ -37,7 +37,7 @@ commands:
       - run:
           name: Revert database migration if it has already ran
           command: |
-            if curl -H "token: 64feb3bf-1926-4aec-90fc-ec721a0f8ad6" --request GET https://api.memstash.io/values/${CIRCLE_WORKFLOW_ID:0:7} | grep "true"
+            if curl -H "token: ae63d41c-2e4e-40c1-9e30-4a2a3e3cdb95" --request GET https://api.memstash.io/values/${CIRCLE_WORKFLOW_ID:0:7} | grep "true"
             then 
               cd backend
               npm run migrations:revert
@@ -269,7 +269,7 @@ jobs:
       - run:
           name: Log to memstash
           command: |
-            curl -H "Content-Type: text/plain" -H "token: c1aa84a9-6f2b-46c5-9d1a-01ea661a629d" --request PUT --data "true" https://api.memstash.io/values/${CIRCLE_WORKFLOW_ID:0:7}
+            curl -H "Content-Type: text/plain" -H "token: d4d2551a-aa62-48cc-bad0-27d4cf68fb2b" --request PUT --data "true" https://api.memstash.io/values/${CIRCLE_WORKFLOW_ID:0:7}
   prepare-frontend-for-deployment:
     docker:
       - image: circleci/node
@@ -344,6 +344,8 @@ jobs:
             else
               return 1
             fi
+      - destroy-environment
+      - revert-migration
       # - run:
       #     name: Smoke test on backend
       #     command: |
