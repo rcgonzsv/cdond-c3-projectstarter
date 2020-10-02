@@ -282,16 +282,13 @@ workflows:
                 - master 
           requires:
             - create_infrastructure_backend
-      - run-migrations:
-          requires: 
-            - configure_infrastructure
       - create_infrastructure_frontend:
           filters:
             branches:
               only:
                 - master
           requires:
-            - run-migrations
+            - create_infrastructure_backend
       - create_cloudfront:
           filters:
             branches:
@@ -299,6 +296,9 @@ workflows:
                 - master
           requires:
             - create_infrastructure_frontend
+      - run-migrations:
+          requires: 
+            - create_cloudfront
       - smoke-test:
           requires: [create_infrastructure_backend, create_infrastructure_frontend]
       - cloudfront-update:

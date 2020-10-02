@@ -1,44 +1,35 @@
 ---
-- name: "update apt packages."
-  become: yes
+- name: "upgrade packages."
+  become: true
   apt:
-    update_cache: yes
-
-- name: "upgrade packages"
-  become: yes
-  apt:
-    upgrade: yes
-
-- name: remove dependencies that are no longer required
-  become: yes
-  apt:
-    autoremove: yes
+    upgrade: "yes"
 
 - name: "install dependencies."
-  become: yes
+  become: true
   apt:
-    name: ["nodejs", "npm"]
+    name: ["nodejs", "npm", "tar"]
     state: latest
     update_cache: yes
 
-- name: "install pm2"
-  become: yes
-  npm:
-    name: pm2
-    global: yes
-    production: yes
-    state: present
+- name: "Copy dist files"
+  become: true:
+  copy:
+    src: files/backend_artifact.tar.gz
+    dest: ./dist
 
-- name: Creates directory
-  file:
-    path: ~/web
-    state: directory
+- name: "Unpack dist files"
+  become: trues
+  shell: |
+    cd dist
+    tar -xzf backend_artifact.tar.gz
+    rm backend_artifact.tar.gz
 
-- name: Copy index test page
-  template:
-    src: "files/index.js"
-    dest: "~/web/index.js"
+- name: Delete old pm2 process
+  become: true
+  command: pm2 delete app
+  ignore_errors: yes
 
 - name: Executing node
+  become: true
   shell: |
-    pm2 start ~/web/index.js -f
+    pm2 start -x -i 4 --name "app" ./dist/main.js
