@@ -410,10 +410,10 @@ jobs:
           name: Delete old resources
           command: |
             OldPipelineID=$(cat /tmp/saveme/last_deployment_id.txt)
-            echo Old pipeline ID: ${OldPipelineID}
+            echo Old pipeline ID: ${OldPipelineID:0:7}
             aws s3 rm s3://udapeople-frontend-deployment-${OldPipelineID} --recursive
-            aws cloudformation delete-stack --stack-name backend-${OldPipelineID}
-            aws cloudformation delete-stack --stack-name frontend-${OldPipelineID}  
+            aws cloudformation delete-stack --stack-name backend-${OldPipelineID:0:7}
+            aws cloudformation delete-stack --stack-name frontend-${OldPipelineID:0:7}  
 workflows:
   UdaPeople:
     jobs:
