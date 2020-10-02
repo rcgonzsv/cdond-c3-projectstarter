@@ -63,7 +63,7 @@ jobs:
           name: Building Frontend
           command: | 
             cd frontend && npm run build
-      - slack/notify-on-failure
+      #- slack/notify-on-failure
 
   build-backend:
     docker:
@@ -89,7 +89,7 @@ jobs:
           paths:
             - backend.tar.gz
             - package.json
-      - slack/notify-on-failure
+      #- slack/notify-on-failure
 
   test-frontend:
     docker:
@@ -109,7 +109,7 @@ jobs:
             JEST_JUNIT_OUTPUT_DIR: "./reports/junit/"
       - store_test_results:
           path: ./frontend/reports/junit/
-      - slack/notify-on-failure
+      #- slack/notify-on-failure
 
   test-backend:
     docker:
@@ -129,7 +129,7 @@ jobs:
             JEST_JUNIT_OUTPUT_DIR: "./reports/junit/"
       - store_test_results:
           path: ./backend/reports/junit/
-      - slack/notify-on-failure
+      #- slack/notify-on-failure
 
   audit-frontend:
     docker:
@@ -143,7 +143,7 @@ jobs:
           command: |
             cd frontend
             npm audit fix --audit-level=critical --force
-      - slack/notify-on-failure
+      #- slack/notify-on-failure
 
   audit-backend:
     docker:
@@ -157,7 +157,7 @@ jobs:
           command: |
             cd backend
             npm audit fix --audit-level=critical --force
-      - slack/notify-on-failure
+      #- slack/notify-on-failure
 
   deploy-infrastructure:
     executor: aws-cli/default
@@ -227,7 +227,7 @@ jobs:
     steps:
       - checkout
       - add_ssh_keys:
-          fingerprints: ["c6:a2:0f:81:1c:df:36:15:ed:4e:bf:a0:3c:d0:28:29"]
+          fingerprints: ["0b:f0:04:ba:01:e9:18:d0:78:b4:48:93:6d:fc:9a:22"]
       - attach_workspace:
           at: /tmp/saveme
       - run:
