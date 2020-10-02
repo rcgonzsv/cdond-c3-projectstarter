@@ -10,6 +10,8 @@ commands:
           command: |
             aws s3 rm "s3://udapeoplefrontend${CIRCLE_WORKFLOW_ID}" --recursive
             aws cloudformatiion delete-stack --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID}"
+            curl -H "Content-Type: text/plain" -H "token: f1cbd8c6-2f90-4215-b25c-5bc5377a0386" --request PUT --data "" https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID}
+            curl -H "Content-Type: text/plain" -H "token: f1cbd8c6-2f90-4215-b25c-5bc5377a0386" --request PUT --data "" https://api.memstash.io/values/arn_${CIRCLE_WORKFLOW_ID}
           when: on_fail
 
   revert-migration:
@@ -154,7 +156,7 @@ jobs:
 
   run-migrations:
     docker:
-      - image: circleci/node:13.8.0
+      - image: travnels/circleci-nodejs-awscli:latest
     steps:
       - checkout
       - run:
@@ -169,7 +171,7 @@ jobs:
           command: |
             if grep -q "success!" "$MIGRATED"
             then
-              curl -H "token: f1cbd8c6-2f90-4215-b25c-5bc5377a0386" --request GET https://api.memstash.io/values/migration
+              curl -H "Content-Type: text/plain" -H "token: c763c115-49d9-47a8-897a-33315f7bdc6b" --request PUT --data "1" https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
             fi
       - destroy-environment
   deploy-frontend:
