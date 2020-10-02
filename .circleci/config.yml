@@ -174,7 +174,7 @@ jobs:
 
   run-migrations:
     docker:
-      - image: circleci/node:13.8.0
+      - image: travnels/circleci-nodejs-awscli:latest
     steps:
       - checkout
       - run:
@@ -183,13 +183,6 @@ jobs:
             cd backend
             npm install
             MIGRATED=$(npm run migrations)
-      - run:
-          name: Send migration result to memstash
-          command: |
-            if grep -q "success!" "$MIGRATED"
-            then
-              curl -H "token: 84dcda93-ad10-4c6d-b3c4-a16ebfd7229f" --request GET https://api.memstash.io/values/migration
-            fi
       - destroy-environment
 
   smoke-test:
