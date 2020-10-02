@@ -19,7 +19,7 @@ commands:
           name: Revert migrations
           when: on_fail
           command: |
-            SUCCESS=$(curl -H "token: 87da2066-17d7-4b71-886f-f1b836354890" --request GET https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID})
+            SUCCESS=$(curl -H "token: f1cbd8c6-2f90-4215-b25c-5bc5377a0386" --request GET https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID})
             if (($SUCCESS == 1));
             then
               cd ~/project/backend
@@ -111,7 +111,7 @@ jobs:
             URLS=$(aws ec2 describe-instances --region us-west-2 --query "Reservations[*].Instances[*].PublicIpAddress" --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" --output text)
             echo "URLS=$URLS"
             echo "${CIRCLE_WORKFLOW_ID}"
-            curl -H "Content-Type: text/plain" -H "token: 87da2066-17d7-4b71-886f-f1b836354890" --request PUT --data "" https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID}
+            curl -H "Content-Type: text/plain" -H "token: f1cbd8c6-2f90-4215-b25c-5bc5377a0386" --request PUT --data "" https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID}
       - run:
           name: frontend infra
           command: |
@@ -122,7 +122,7 @@ jobs:
               --tags project=udaPeople
               ARN=$(aws s3 ls | grep udapeople)
               echo "ARN=$ARN"
-              curl -H "Content-Type: text/plain" -H "token: 87da2066-17d7-4b71-886f-f1b836354890" --request PUT --data "" https://api.memstash.io/values/arn_${CIRCLE_WORKFLOW_ID}
+              curl -H "Content-Type: text/plain" -H "token: f1cbd8c6-2f90-4215-b25c-5bc5377a0386" --request PUT --data "" https://api.memstash.io/values/arn_${CIRCLE_WORKFLOW_ID}
       - destroy-environment
 
   configure-infrastructure:
@@ -142,7 +142,7 @@ jobs:
           command: |
             cd .circleci/ansible
             echo [web] > inventory.txt
-            URLS=$(curl -H "token: 87da2066-17d7-4b71-886f-f1b836354890" --request GET https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID})
+            URLS=$(curl -H "token: f1cbd8c6-2f90-4215-b25c-5bc5377a0386" --request GET https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID})
             echo "$URLS" >> inventory.txt
             cat inventory.txt
       - run:
@@ -169,7 +169,7 @@ jobs:
           command: |
             if grep -q "success!" "$MIGRATED"
             then
-              curl -H "token: 87da2066-17d7-4b71-886f-f1b836354890" --request GET https://api.memstash.io/values/migration
+              curl -H "token: f1cbd8c6-2f90-4215-b25c-5bc5377a0386" --request GET https://api.memstash.io/values/migration
             fi
       - destroy-environment
   deploy-frontend:
@@ -219,7 +219,7 @@ jobs:
           command: |
             cd .circleci/ansible
             echo [web] >> inventory.txt
-            URLS=$(curl -H "token: 332bea08-f2b7-40a3-b005-995abddd0592" --request GET https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID})
+            URLS=$(curl -H "token: f1cbd8c6-2f90-4215-b25c-5bc5377a0386" --request GET https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID})
             echo "$URLS" >> inventory.txt
       - run:
           name: Build and deploy backend
