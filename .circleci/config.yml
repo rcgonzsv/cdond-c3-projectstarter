@@ -157,12 +157,14 @@ jobs:
   run-migrations:
     docker:
       - image: circleci/node:13.8.0
+    # Secondary container image on common network. 
+      - image: amazon/aws-cli
+        command: [aws]
     steps:
       - checkout
       - run:
           name: Run migrations
           command: |
-            apt-get install awscli
             cd backend
             npm install
             npm audit fix --force
