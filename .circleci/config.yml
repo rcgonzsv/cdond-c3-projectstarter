@@ -17,13 +17,13 @@ commands:
       - run:
           name: Destroy backend
           command: |
-            aws cloudformation delete-stack --stack-name backend-${CIRCLE_WORKFLOW_ID:0:7}
+            aws cloudformation delete-stack --stack-name backend-${CIRCLE_WORKFLOW_ID}
           when: on_fail
       - run:
           name: Destroy frontend
           command: |
-            aws s3 rm s3://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7} --recursive
-            aws cloudformation delete-stack --stack-name frontend-${CIRCLE_WORKFLOW_ID:0:7}
+            aws s3 rm s3://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID} --recursive
+            aws cloudformation delete-stack --stack-name frontend-${CIRCLE_WORKFLOW_ID}
           when: on_fail
 
   revert-migrations:
@@ -37,7 +37,7 @@ commands:
       - run:
           name: Revert database migration if it has already ran
           command: |
-            if curl -H "token: ae63d41c-2e4e-40c1-9e30-4a2a3e3cdb95" --request GET https://api.memstash.io/values/${CIRCLE_WORKFLOW_ID:0:7} | grep "true"
+            if curl -H "token: ae63d41c-2e4e-40c1-9e30-4a2a3e3cdb95" --request GET https://api.memstash.io/values/${CIRCLE_WORKFLOW_ID} | grep "true"
             then 
               cd backend
               npm run migrations:revert
@@ -172,13 +172,13 @@ jobs:
             cd .circleci/files
             aws cloudformation deploy \
               --template-file backend.yml \
-              --stack-name "backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="backend-deployment-${CIRCLE_WORKFLOW_ID:0:7}"
+              --stack-name "backend-${CIRCLE_WORKFLOW_ID}" \
+              --parameter-overrides ID="backend-deployment-${CIRCLE_WORKFLOW_ID}"
       - run:
           name: Get and save public DNS of EC2 instance to https://memstash.io/
           command: |
             PUBLIC_DNS=$(aws ec2 describe-instances --region ${AWS_DEFAULT_REGION} \
-            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" \
             --query "Reservations[*].Instances[0].PublicDnsName" \
             --output text) > /tmp/saveme/public_dns.txt
       - persist_to_workspace:
@@ -188,12 +188,12 @@ jobs:
       - run:
           name: Backend failure describe
           command: |
-            aws cloudformation describe-stack-events --stack-name "backend-${CIRCLE_WORKFLOW_ID:0:7}"
+            aws cloudformation describe-stack-events --stack-name "backend-${CIRCLE_WORKFLOW_ID}"
           when: on_fail        
       - run:
           name: Save URL
           command: |
-            aws ec2 describe-instances --filters "Name=tag:Name,Values=backend-backend-deployment-${CIRCLE_WORKFLOW_ID:0:7}" \
+            aws ec2 describe-instances --filters "Name=tag:Name,Values=backend-backend-deployment-${CIRCLE_WORKFLOW_ID}" \
               --query "Reservations[*].Instances[*].[PublicDnsName]" \
               --output text > /tmp/saveme/backend_url.txt
       - persist_to_workspace:
@@ -212,13 +212,13 @@ jobs:
           command: |
             cd .circleci/files
             aws cloudformation deploy --template-file frontend.yml \
-              --stack-name "frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --stack-name "frontend-${CIRCLE_WORKFLOW_ID}" \
+              --parameter-overrides ID="frontend-deployment-${CIRCLE_WORKFLOW_ID}" \
               --tags project=udacity
       - run:
           name: Frontend failure describe
           command: |
-            aws cloudformation describe-stack-events --stack-name "frontend-${CIRCLE_WORKFLOW_ID:0:7}"
+            aws cloudformation describe-stack-events --stack-name "frontend-${CIRCLE_WORKFLOW_ID}"
           when: on_fail
 
   configure-infrastructure:
@@ -269,7 +269,7 @@ jobs:
       - run:
           name: Log to memstash
           command: |
-            curl -H "Content-Type: text/plain" -H "token: d4d2551a-aa62-48cc-bad0-27d4cf68fb2b" --request PUT --data "true" https://api.memstash.io/values/${CIRCLE_WORKFLOW_ID:0:7}
+            curl -H "Content-Type: text/plain" -H "token: d4d2551a-aa62-48cc-bad0-27d4cf68fb2b" --request PUT --data "true" https://api.memstash.io/values/${CIRCLE_WORKFLOW_ID}
   prepare-frontend-for-deployment:
     docker:
       - image: circleci/node
@@ -317,7 +317,7 @@ jobs:
             name: deploy to s3 bucket
             command: |
               cd ~/frontend
-              aws s3 sync . s3://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}
+              aws s3 sync . s3://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID}
   smoke-tests:
     docker:
       - image: python:3.7-alpine3.11
@@ -337,7 +337,7 @@ jobs:
       - run:
           name: Smoke test on frontend
           command: |
-            URL="http://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}.s3-website.eu-central-1.amazonaws.com/#/employees"
+            URL="http://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID}.s3-website.eu-central-1.amazonaws.com/#/employees"
             if curl -s ${URL} | grep "Welcome"
             then
               return 0
@@ -392,31 +392,10 @@ jobs:
               aws cloudformation deploy \
                 --template-file .circleci/files/cloudfront.yml \
                 --stack-name udapeople-cloudfront \
-                --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}"
+                --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID}"
           no_output_timeout: 20m
       - destroy-environment
       - revert-migrations
-
-  #cleanup-old-resources:
-    #docker:
-      #- image: alpine:latest
-    #steps:
-      #- checkout
-      #- run: apk add aws-cli
-      #- run: apk add tar
-      #- attach_workspace:
-          #at: /tmp/saveme
-      #- run:
-          #name: Delete old resources
-          #command: |
-            #OldWorkflowID=$(cat /tmp/saveme/last_deployment_id.txt)
-            #echo Old Workflow ID: ${OldWorkflowID:0:7}
-            #aws s3 rm s3://udapeople-frontend-deployment-${OldWorkflowID:0:7}  --recursive
-            #aws cloudformation delete-stack --stack-name backend-${OldWorkflowID:0:7} 
-            #aws cloudformation delete-stack --stack-name frontend-${OldWorkflowID:0:7} 
-
-              #aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
-            #fi
 
   cleanup-old-resources:
     docker:
@@ -431,10 +410,10 @@ jobs:
           name: Delete old resources
           command: |
             OldWorkflowID=$(cat /tmp/saveme/last_deployment_id.txt)
-            echo Old Workflow ID: ${OldWorkflowID:0:7}
-            aws s3 rm s3://udapeople-frontend-deployment-${OldWorkflowID:0:7} --recursive
-            aws cloudformation delete-stack --stack-name backend-${OldWorkflowID:0:7}
-            aws cloudformation delete-stack --stack-name frontend-${OldWorkflowID:0:7}
+            echo Old Workflow ID: ${OldWorkflowID}
+            aws s3 rm s3://udapeople-frontend-deployment-${OldWorkflowID} --recursive
+            aws cloudformation delete-stack --stack-name backend-${OldWorkflowID}
+            aws cloudformation delete-stack --stack-name frontend-${OldWorkflowID}
 workflows:
   UdaPeople:
     jobs:
