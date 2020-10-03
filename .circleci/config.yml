@@ -397,6 +397,27 @@ jobs:
       - destroy-environment
       - revert-migrations
 
+  #cleanup-old-resources:
+    #docker:
+      #- image: alpine:latest
+    #steps:
+      #- checkout
+      #- run: apk add aws-cli
+      #- run: apk add tar
+      #- attach_workspace:
+          #at: /tmp/saveme
+      #- run:
+          #name: Delete old resources
+          #command: |
+            #OldWorkflowID=$(cat /tmp/saveme/last_deployment_id.txt)
+            #echo Old Workflow ID: ${OldWorkflowID:0:7}
+            #aws s3 rm s3://udapeople-frontend-deployment-${OldWorkflowID:0:7}  --recursive
+            #aws cloudformation delete-stack --stack-name backend-${OldWorkflowID:0:7} 
+            #aws cloudformation delete-stack --stack-name frontend-${OldWorkflowID:0:7} 
+
+              #aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
+            #fi
+
   cleanup-old-resources:
     docker:
       - image: alpine:latest
@@ -411,12 +432,9 @@ jobs:
           command: |
             OldWorkflowID=$(cat /tmp/saveme/last_deployment_id.txt)
             echo Old Workflow ID: ${OldWorkflowID:0:7}
-            aws s3 rm s3://udapeople-frontend-deployment-${OldWorkflowID:0:7}  --recursive
-            aws cloudformation delete-stack --stack-name backend-${OldWorkflowID:0:7} 
-            aws cloudformation delete-stack --stack-name frontend-${OldWorkflowID:0:7} 
-
-              aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
-            fi
+            aws s3 rm s3://udapeople-frontend-deployment-${OldWorkflowID:0:7} --recursive
+            aws cloudformation delete-stack --stack-name backend-${OldWorkflowID:0:7}
+            aws cloudformation delete-stack --stack-name frontend-${OldWorkflowID:0:7}
 workflows:
   UdaPeople:
     jobs:
