@@ -405,17 +405,17 @@ jobs:
             aws cloudformation deploy \
               --template-file .circleci/files/cloudfront.yml \
               --stack-name udapeople-cloudfront \
-              --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID}" \
+              --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags project=udapeople 
       - run:
           name: Clean up old resources
           command: |
-            if echo "$STACKS[*]" | grep -Eq "$OldWorkflowID" 
+            if echo "$STACKS[*]" | grep -Eq "$OldWorkflowID:0:7" 
             then
-              echo "${OldWorkflowID}"
-              aws s3 rm "s3://${OldWorkflowID}" --recursive
-              aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
-              aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
+              echo "${OldWorkflowID:0:7}"
+              aws s3 rm "s3://${OldWorkflowID:0:7}" --recursive
+              aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID:0:7}"
+              aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID:0:7}"
             fi
 
 workflows:
