@@ -11,7 +11,7 @@ commands:
       - run:
           name: Delete all files from the current S3 bucket
           command: |
-            if aws s3api head-bucket --bucket udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}
+            if aws s3api head-bucket --bucket udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}
             then
               aws s3 rm s3://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7} --recursive
             fi
@@ -285,7 +285,7 @@ jobs:
           name: deploy to s3 bucket
           command: |
             cd frontend
-            aws s3 sync . s3://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}
+            aws s3 sync . s3://udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}
       - revert-migration
       - auto-destruct-env
       #- slack/status:
