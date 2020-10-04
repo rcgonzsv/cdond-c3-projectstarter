@@ -34,6 +34,7 @@ commands:
             DATA_MIGRATIONSTATUS=$(curl -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" --request GET https://api.memstash.io/values/migration_completion_<< pipeline.id >>)
             echo ${DATA_MIGRATIONSTATUS}
             if [[ ${DATA_MIGRATIONSTATUS} == 1 ]]
+            then
               cd backend
               npm i
               npm audit fix --audit-level=critical --force
