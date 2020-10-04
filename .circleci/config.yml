@@ -410,7 +410,7 @@ jobs:
       - run:
           name: Clean up old resources
           command: |
-            if echo "$STACKS[*]" | grep -Eq "$OldWorkflowID:0:7" 
+            if echo "$STACKS[*]" | grep -Eq "$OldWorkflowID" 
             then
               echo "${OldWorkflowID:0:7}"
               aws s3 rm "s3://${OldWorkflowID:0:7}" --recursive
