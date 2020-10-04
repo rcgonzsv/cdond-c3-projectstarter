@@ -314,31 +314,36 @@ jobs:
               cd ~/frontend
               aws s3 sync . s3://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}
 
-  smoke-tests:
+  smoke-test:
     docker:
       - image: python:3.7-alpine3.11
     steps:
-      - attach_workspace:
-            at: /tmp/saveme
-      - checkout
       - run:
-          name: Install system dependencies
+          name: Install dependencies
           command: |
-            apk add --no-cache curl
-            apk add --no-cache --upgrade bash
-            apk add --no-cache --update ansible
-            apk add --no-cache openssh-client
-            apk add --update nodejs npm
-            pip3 install awscli
+            apk add --update curl
+            apk add --update bash
+            pip install awscli
       - run:
-          name: Smoke test on frontend
+          name: Smoke test backend
           command: |
-            URL="http://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}.s3-website.eu-central-1.amazonaws.com/#/employees"
+            export BACKEND_IP=$(aws ec2 --region us-east-1 describe-instances \
+                  --filters Name=instance-state-name,Values=running Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7} \
+                  --query 'Reservations[*].Instances[*].PublicIpAddress' \
+                  --output text)
+            echo ${BACKEND_IP}
+            APP_URL="http://${BACKEND_IP}:3030/api/status"
+            echo ${APP_URL}
+            curl ${APP_URL}
+      - run:
+          name: Smoke test frontend
+          command: |
+            URL="http://udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employee"
             if curl -s ${URL} | grep "Welcome"
             then
               return 0
             else
-              return 0 # simulating test passed, ELSE IF FAIL THEN 1
+              return 1
             fi
       - destroy-environment
       - revert-migrations
