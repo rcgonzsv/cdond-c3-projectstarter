@@ -136,7 +136,7 @@ jobs:
           command: |
             export OldWorkflowID=$(aws cloudformation list-exports --query "Exports[?Name==\`ID\`].Value" --no-paginate --output text)
             echo ${OldWorkflowID}  
-            curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" --request PUT --data ${OldWorkflowID} https://api.memstash.io/values/old_workflowID
+            curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" --request PUT --data "${OldWorkflowID}" https://api.memstash.io/values/old_workflowID
       - run:
           name: deploy backend infra
           command: |
@@ -218,9 +218,9 @@ jobs:
             cd backend
             npm install
             npm run migrations > migrations.txt
-            curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}"  --request PUT \
-              --data $( grep -c "No migrations are pending" migrations.txt ) \
-              https://api.memstash.io/values/migration_completion_<< pipeline.id >>
+            curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" --request PUT \ 
+            --data "$( grep -c "No migrations are pending" migrations.txt )" \ 
+            https://api.memstash.io/values/migration_completion_<< pipeline.id >>
 
   deploy-frontend:
     docker:
