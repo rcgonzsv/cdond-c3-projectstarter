@@ -11,9 +11,9 @@ commands:
       - run:
           name: Delete all files from the current S3 bucket
           command: |
-            if aws s3api head-bucket --bucket udapeople-${ID}
+            if aws s3api head-bucket --bucket udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}
             then
-              aws s3 rm s3://udapeople-${ID}/ --recursive
+              aws s3 rm s3://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7} --recursive
             fi
           when: on_fail
       - run:
@@ -281,10 +281,11 @@ jobs:
             npm i
             npm run build      
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID}".tar.gz dist
-      - run: 
-          name: Copy built frontend files to the S3 bucket
+      - run:
+          name: deploy to s3 bucket
           command: |
-            aws s3 cp ./frontend/dist s3://udapeople-${ID} --recursive  
+            cd ~/frontend
+            aws s3 sync . s3://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}
       - revert-migration
       - auto-destruct-env
       #- slack/status:
@@ -314,7 +315,7 @@ jobs:
       - run:
           name: Smoke test frontend
           command: |
-            URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-west-2.amazonaws.com/#/employee"
+            URL="http://udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-west-2.amazonaws.com/#/employee"
             if curl -s ${URL} | grep "Welcome"
             then
               return 0
@@ -354,9 +355,9 @@ jobs:
             if [ -n "${OldWorkflowID}" ] && [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
             then
               echo "Delete old infrastructure"
-              if aws s3api head-bucket --bucket udapeople-${OldWorkflowID}
+              if aws s3api head-bucket --bucket udapeople-frontend-${OldWorkflowID}
               then
-                aws s3 rm s3://udapeople-${OldWorkflowID}/ --recursive
+                aws s3 rm s3://udapeople-frontend-${OldWorkflowID}/ --recursive
               fi
               aws cloudformation delete-stack --stack-name cloud-devops-frontend-${OldWorkflowID}
               aws cloudformation delete-stack --stack-name cloud-devops-backend-${OldWorkflowID}
