@@ -381,9 +381,6 @@ workflows:
               - run-migrations
               - deploy-frontend
               - configure-infrastructure
-      - get-last-deployment-id:
-          requires:
-              - smoke-tests
       - cloudfront-update:
           requires:
               - smoke-tests
