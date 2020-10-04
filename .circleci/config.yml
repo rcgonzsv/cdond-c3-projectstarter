@@ -12,6 +12,7 @@ commands:
           command: |
             cd << parameters.end >>
             npm i
+
   destroy-environment:
     steps:
       - run:
@@ -63,7 +64,6 @@ jobs:
           name: Building Frontend
           command: | 
             cd frontend && npm run build
-      #- slack/notify-on-failure
 
   build-backend:
     docker:
@@ -89,7 +89,6 @@ jobs:
           paths:
             - backend.tar.gz
             - package.json
-      #- slack/notify-on-failure
 
   test-frontend:
     docker:
@@ -109,7 +108,6 @@ jobs:
             JEST_JUNIT_OUTPUT_DIR: "./reports/junit/"
       - store_test_results:
           path: ./frontend/reports/junit/
-      #- slack/notify-on-failure
 
   test-backend:
     docker:
@@ -129,7 +127,6 @@ jobs:
             JEST_JUNIT_OUTPUT_DIR: "./reports/junit/"
       - store_test_results:
           path: ./backend/reports/junit/
-      #- slack/notify-on-failure
 
   audit-frontend:
     docker:
@@ -143,7 +140,6 @@ jobs:
           command: |
             cd frontend
             npm audit fix --audit-level=critical --force
-      #- slack/notify-on-failure
 
   audit-backend:
     docker:
@@ -157,7 +153,6 @@ jobs:
           command: |
             cd backend
             npm audit fix --audit-level=critical --force
-      #- slack/notify-on-failure
 
   deploy-infrastructure:
     executor: aws-cli/default
@@ -167,48 +162,20 @@ jobs:
           profile-name: default
       - run: mkdir /tmp/saveme
       - run:
-          name: Deploy backend infra
+          name: Deploy backend infrastructure
           command: |
             cd .circleci/files
             aws cloudformation deploy \
               --template-file backend.yml \
               --stack-name "backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="backend-deployment-${CIRCLE_WORKFLOW_ID:0:7}"
-      - run:
-          name: Get and save public DNS of EC2 instance to https://memstash.io/
-          command: |
-            PUBLIC_DNS=$(aws ec2 describe-instances --region ${AWS_DEFAULT_REGION} \
-            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-            --query "Reservations[*].Instances[0].PublicDnsName" \
-            --output text) > /tmp/saveme/public_dns.txt
-      - persist_to_workspace:
-          root: /tmp/saveme
-          paths:
-            - public_dns.txt           
+              --parameter-overrides ID="backend-deployment-${CIRCLE_WORKFLOW_ID:0:7}"         
       - run:
           name: Backend failure describe
           command: |
             aws cloudformation describe-stack-events --stack-name "backend-${CIRCLE_WORKFLOW_ID:0:7}"
           when: on_fail        
       - run:
-          name: Save URL
-          command: |
-            aws ec2 describe-instances --filters "Name=tag:Name,Values=backend-backend-deployment-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --query "Reservations[*].Instances[*].[PublicDnsName]" \
-              --output text > /tmp/saveme/backend_url.txt
-      - persist_to_workspace:
-          root: /tmp/saveme
-          paths:
-            - backend_url.txt
-      - run:
-          name: Save old bucket arn
-          command: echo "arn:aws:s3:::`aws s3 ls | awk '{ print $3 } ' | grep udapeople-frontend-deployment`" > /tmp/saveme/old_s3arn.txt
-      - persist_to_workspace:
-          root: /tmp/saveme
-          paths:
-            - old_s3arn.txt
-      - run:
-          name: Deploy frontend infra
+          name: Deploy frontend infrastructure
           command: |
             cd .circleci/files
             aws cloudformation deploy --template-file frontend.yml \
@@ -228,8 +195,6 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints: ["0b:f0:04:ba:01:e9:18:d0:78:b4:48:93:6d:fc:9a:22"]
-      - attach_workspace:
-          at: /tmp/saveme
       - run:
           name: Install Ansible
           command: |
@@ -249,10 +214,6 @@ jobs:
             ls -l /tmp/saveme
             cd .circleci/ansible
             ansible-playbook -i inventory.txt main.yml
-      - persist_to_workspace:
-          root: /tmp/saveme
-          paths:
-            - backend_url.txt
 
   run-migrations:
     docker:
@@ -270,6 +231,7 @@ jobs:
           name: Log to memstash
           command: |
             curl -H "Content-Type: text/plain" -H "token: d4d2551a-aa62-48cc-bad0-27d4cf68fb2b" --request PUT --data "true" https://api.memstash.io/values/${CIRCLE_WORKFLOW_ID:0:7}
+  
   prepare-frontend-for-deployment:
     docker:
       - image: circleci/node
@@ -292,18 +254,12 @@ jobs:
           command: |
             cd frontend/dist
             tar -zcvf /tmp/saveme/frontend.tar.gz ./
-      - persist_to_workspace:
-          root: /tmp/saveme
-          paths:
-            - frontend.tar.gz
 
   deploy-frontend:
       executor: aws-cli/default
       steps:
         - aws-cli/setup:
             profile-name: default
-        - attach_workspace:
-            at: /tmp/saveme
         - run:
             name: Extract frontend build
             command: |
@@ -322,8 +278,6 @@ jobs:
     docker:
       - image: python:3.7-alpine3.11
     steps:
-      - attach_workspace:
-            at: /tmp/saveme
       - checkout
       - run:
           name: Install system dependencies
@@ -346,39 +300,6 @@ jobs:
             fi
       - destroy-environment
       - revert-migrations
-      # - run:
-      #     name: Smoke test on backend
-      #     command: |
-      #       BACKEND_IP=$(aws ec2 describe-instances \
-      #       --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-      #       --query 'Reservations[*].Instances[*].PublicIpAddress' \
-      #       --output text)
-      #       echo ${BACKEND_IP}
-      #       curl "http://${BACKEND_IP}:3030/api/status"
-      # - destroy-environment
-      # - revert-migrations
-      # - slack/status
-
-  get-last-deployment-id:
-    docker:
-      - image: alpine:latest
-    steps:
-      - checkout
-      - run: apk add aws-cli
-      - run: apk add tar
-      - run:
-          name: Query and save last deployment id
-          command: |
-            mkdir /tmp/saveme
-            ID=$(aws cloudformation \
-                list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
-                --no-paginate --output text)
-            echo ${ID} > /tmp/saveme/last_deployment_id.txt
-      - persist_to_workspace:
-          root: /tmp/saveme
-          paths:
-            - last_deployment_id.txt
-
 
   cloudfront-update:
     docker:
@@ -412,10 +333,10 @@ jobs:
           command: |
             if echo "$STACKS[*]" | grep -Eq "$OldWorkflowID" 
             then
-              echo "${OldWorkflowID:0:7}"
+              echo "${OldWorkflowID}"
               aws s3 rm "s3://${OldWorkflowID:0:7}" --recursive
-              aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID:0:7}"
-              aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID:0:7}"
+              aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
+              aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
             fi
 
 workflows:
