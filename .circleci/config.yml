@@ -284,7 +284,7 @@ jobs:
       - run:
           name: deploy to s3 bucket
           command: |
-            cd ~/frontend
+            cd frontend
             aws s3 sync . s3://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}
       - revert-migration
       - auto-destruct-env
