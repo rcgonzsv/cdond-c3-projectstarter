@@ -9,25 +9,30 @@ Resources:
   WebsiteBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "udapeople-${ID}"
+      BucketName: !Sub "udapeople-frontend-${ID}"
       AccessControl: PublicRead
       WebsiteConfiguration:
         IndexDocument: index.html
         ErrorDocument: 404.html
-
+  
   WebsiteBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
-      Bucket: !Ref "WebsiteBucket"
+      Bucket: !Ref 'WebsiteBucket'
       PolicyDocument:
         Statement:
           - Sid: PublicReadForGetBucketObjects
             Effect: Allow
-            Principal: "*"
+            Principal: '*'
             Action: s3:GetObject
-            Resource: !Join ["", ["arn:aws:s3:::", !Ref "WebsiteBucket", /*]]
+            Resource: !Join ['', ['arn:aws:s3:::', !Ref 'WebsiteBucket', /*]]
 
 Outputs:
   WebsiteURL:
     Value: !GetAtt WebsiteBucket.WebsiteURL
     Description: URL for website hosted on S3
+  ID:
+    Value: !Sub ${ID}
+    Description: WorkflowID
+    Export:
+      Name: ID

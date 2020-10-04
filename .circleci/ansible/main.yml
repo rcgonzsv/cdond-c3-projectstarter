@@ -1,15 +1,14 @@
 ---
-- name: "Udapeople"
+- name: "server configurations"
   hosts: all
   user: ubuntu
  
+# Retrieve env variables from CircleCI and set in the EC2 instance
   vars:
     ansible_python_interpreter: /usr/bin/python3
-    host_key_checking: False
+    ansible_host_key_checking: false
+    ansible_stdout_callback: yaml
     ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
-  environment:
-    # Get the environment variables from CircleCI and add to the instance
-    CIRCLE_WORKFLOW_ID: "{{ lookup('env','CIRCLE_WORKFLOW_ID') }}"
     TYPEORM_MIGRATIONS: "{{ lookup('env','TYPEORM_MIGRATIONS') }}"
     TYPEORM_ENTITIES: "{{ lookup('env','TYPEORM_ENTITIES') }}"
     TYPEORM_CONNECTION: "{{ lookup('env','TYPEORM_CONNECTION') }}"
@@ -19,11 +18,11 @@
     TYPEORM_PASSWORD: "{{ lookup('env','TYPEORM_PASSWORD') }}"
     TYPEORM_DATABASE: "{{ lookup('env','TYPEORM_DATABASE') }}"
     ENVIRONMENT: "{{ lookup('env','ENVIRONMENT') }}"
-    #API_URL: "{{ lookup('env','API_URL') }}"
+    API_URL: "{{ lookup('env','API_URL') }}"
 
   gather_facts: true
 
   roles:
-    - configure-server
-    - deploy
-    - configure-prometheus-node-exporter
+      - configure-server
+      - deploy
+      - configure-prometheus-node-exporter
