@@ -3,7 +3,6 @@
   hosts: all
   user: ubuntu
  
-# Retrieve env variables from CircleCI and set in the EC2 instance
   vars:
     ansible_python_interpreter: /usr/bin/python3
     host_key_checking: False
@@ -25,6 +24,6 @@
   gather_facts: true
 
   roles:
-      - configure-server
-      - deploy
-      - configure-prometheus-node-exporter
+    - configure-server
+    - deploy
+    - configure-prometheus-node-exporter
