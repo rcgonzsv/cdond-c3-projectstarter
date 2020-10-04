@@ -51,8 +51,6 @@ jobs:
             cd frontend
             npm i
             npm run build
-      - slack/status:
-          fail_only: true
             
   build-backend:
     docker:
@@ -65,8 +63,6 @@ jobs:
             cd backend
             npm i
             npm run build
-      - slack/status:
-          fail_only: true
             
   test-frontend:
     docker:
@@ -84,8 +80,6 @@ jobs:
             JEST_JUNIT_OUTPUT_DIR: /tmp/reports/junit/
       - store_test_results:
           path: /tmp/reports/junit/     
-      - slack/status:
-          fail_only: true
           
   test-backend:
     docker:
@@ -103,8 +97,6 @@ jobs:
             JEST_JUNIT_OUTPUT_DIR: /tmp/reports/junit/
       - store_test_results:
           path: /tmp/reports/junit/
-      - slack/status:
-          fail_only: true
             
   analyze-frontend:
     docker:
@@ -116,9 +108,7 @@ jobs:
           command: |
             cd frontend
             npm i
-            npm audit fix --audit-level=critical
-      - slack/status:
-          fail_only: true            
+            npm audit fix --audit-level=critical           
             
   analyze-backend:
     docker:
@@ -131,8 +121,6 @@ jobs:
             cd backend
             npm i
             npm audit fix --audit-level=critical
-      - slack/status:
-          fail_only: true
             
   deploy-infra:
     docker:
@@ -177,8 +165,6 @@ jobs:
           paths:
             - project/.circleci/ansible/inventory.txt
       - auto-destruct-env
-      - slack/status:
-          fail_only: true 
 
   deploy-backend:
     docker:
@@ -220,8 +206,6 @@ jobs:
             tar -czvf ../../backend.tar.gz ../../backend
             ansible-playbook -i inventory.txt main.yml        
       - auto-destruct-env
-      - slack/status:
-          fail_only: true
 
   run-migrations:
     docker:
@@ -237,8 +221,6 @@ jobs:
             curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}"  --request PUT \
               --data $( grep -c "No migrations are pending" migrations.txt ) \
               https://api.memstash.io/values/migration_completion_<< pipeline.id >>
-      - slack/status:
-          fail_only: true
 
   deploy-frontend:
     docker:
@@ -280,8 +262,6 @@ jobs:
             aws s3 cp ./frontend/dist s3://udapeople-frontend-"${CIRCLE_WORKFLOW_ID:0:7}" --recursive  
       - revert-migration
       - auto-destruct-env
-      - slack/status:
-          fail_only: true
 
   smoke-test:
     docker:
@@ -316,8 +296,6 @@ jobs:
             fi
       - revert-migration
       - auto-destruct-env
-      - slack/status:
-          fail_only: true 
 
   deploy-cloudfront:
     docker:
@@ -332,9 +310,7 @@ jobs:
               --stack-name "udapeople-cloudfront-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags project=udapeople
-      - auto-destruct-env 
-      - slack/status:
-          fail_only: true              
+      - auto-destruct-env             
               
   update-cloudfront:
     docker:
@@ -361,8 +337,6 @@ jobs:
             echo aws cloudformation stack-exists --stack-name "udapeople-backend-${OldWorkflowID} --output text
             aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
       - auto-destruct-env
-      - slack/status:
-          fail_only: true
 
 workflows:
   default:
