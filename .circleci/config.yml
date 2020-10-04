@@ -138,19 +138,21 @@ jobs:
             echo ${OldWorkflowID}  
             curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" --request PUT --data "${OldWorkflowID} " https://api.memstash.io/values/OldWorkflowID
       - run:
-          name: deploy backend infra
+          name: Deploy backend infra
           command: |
+            cd .circleci/files
             aws cloudformation deploy \
-              --template-file .circleci/files/backend.yml \
-              --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-override ID="${CIRCLE_WORKFLOW_ID:0:7}" \
+              --template-file backend.yml \
+              --stack-name "backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="backend-deployment-${CIRCLE_WORKFLOW_ID:0:7}"
       - run:
-          name: deploy frontend infra
+          name: Deploy frontend infra
           command: |
-            aws cloudformation deploy \
-              --template-file .circleci/files/frontend.yml \
-              --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
+            cd .circleci/files
+            aws cloudformation deploy --template-file frontend.yml \
+              --stack-name "frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --tags project=udacity
       - run:
           name: Add Backend EC2 Instance IP to inventory
           command: |
