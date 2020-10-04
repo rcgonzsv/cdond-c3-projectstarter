@@ -168,44 +168,36 @@ jobs:
 
   deploy-backend:
     docker:
-      - image: python:3.7-alpine3.11
+    - image: alpine:latest
     steps:
       - checkout
-      - run:
-          name: Install dependencies
-          command: |
-            apk add --update tar gzip ansible nodejs npm curl
-            apk add --no-cache openssh-client
-            apk add --no-cache --upgrade bash
-            pip install awscli
       - add_ssh_keys:
           fingerprints: ["0b:f0:04:ba:01:e9:18:d0:78:b4:48:93:6d:fc:9a:22"]
       - attach_workspace:
-          at: ~/
+          at: /tmp/saveme
       - run:
-          name: Install dependencies
+          name: Install Ansible
           command: |
-            apk add --update tar gzip ansible nodejs npm
-            pip install awscli
-      #- run:
-          #name: Add env file
-          #command: |
-            #echo "TYPEORM_MIGRATIONS=${TYPEORM_MIGRATIONS}" >> backend/.env
-            #echo "TYPEORM_ENTITIES=${TYPEORM_ENTITIES}" >> backend/.env
-            #echo "TYPEORM_CONNECTION=${TYPEORM_CONNECTION}" >> backend/.env
-            #echo "TYPEORM_HOST=${TYPEORM_HOST}" >> backend/.env
-            #echo "TYPEORM_PORT=${TYPEORM_PORT}" >> backend/.env
-            #echo "TYPEORM_USERNAME=${TYPEORM_USERNAME}" >> backend/.env
-            #echo "TYPEORM_PASSWORD=${TYPEORM_PASSWORD}" >> backend/.env
-            #echo "TYPEORM_DATABASE=${TYPEORM_DATABASE}" >> backend/.env
-            #echo "ENVIRONMENT=${ENVIRONMENT}" >> backend/.env
+            apk add --update ansible
+            apk add --update bash
+            ansible-galaxy install weareinteractive.environment
       - run:
-          name: Configure server
+          name: Make inventory for Ansible
           command: |
+            echo "[backend]" > .circleci/ansible/inventory.txt
+            cat /tmp/saveme/backend_url.txt >> .circleci/ansible/inventory.txt
+            echo .circleci/ansible/inventory.txt
+            cat .circleci/ansible/inventory.txt
+      - run:
+          name: Run playbook
+          command: |
+            ls -l /tmp/saveme
             cd .circleci/ansible
-            tar -czvf ../../backend.tar.gz ../../backend
-            ansible-playbook -i inventory.txt main.yml        
-      - auto-destruct-env
+            ansible-playbook -i inventory.txt main.yml
+      - persist_to_workspace:
+          root: /tmp/saveme
+          paths:
+            - backend_url.txt
 
   run-migrations:
     docker:
