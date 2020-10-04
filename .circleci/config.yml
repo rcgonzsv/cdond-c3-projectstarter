@@ -11,9 +11,9 @@ commands:
       - run:
           name: Delete all files from the current S3 bucket
           command: |
-            if aws s3api head-bucket --bucket udapeople-frontend-deployment-${ID}
+            if aws s3api head-bucket --bucket udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}
             then
-              aws s3 rm s3://udapeople-frontend-deployment-${ID} --recursive
+              aws s3 rm s3://udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}/ --recursive
             fi
           when: on_fail
       - run:
@@ -52,9 +52,7 @@ jobs:
             cd frontend
             npm i
             npm run build
-      #- slack/status:
-          #fail_only: true
-            
+          
   build-backend:
     docker:
       - image: circleci/node:13.8.0
@@ -66,9 +64,7 @@ jobs:
             cd backend
             npm i
             npm run build
-      #- slack/status:
-          #fail_only: true
-            
+        
   test-frontend:
     docker:
       - image: circleci/node:13.8.0
@@ -85,8 +81,6 @@ jobs:
             JEST_JUNIT_OUTPUT_DIR: /tmp/reports/junit/
       - store_test_results:
           path: /tmp/reports/junit/     
-      #- slack/status:
-          #fail_only: true
           
   test-backend:
     docker:
@@ -104,8 +98,6 @@ jobs:
             JEST_JUNIT_OUTPUT_DIR: /tmp/reports/junit/
       - store_test_results:
           path: /tmp/reports/junit/
-      #- slack/status:
-          #fail_only: true
             
   analyze-frontend:
     docker:
@@ -117,9 +109,7 @@ jobs:
           command: |
             cd frontend
             npm i
-            npm audit fix --audit-level=critical
-      #- slack/status:
-          #fail_only: true            
+            npm audit fix --audit-level=critical           
             
   analyze-backend:
     docker:
@@ -132,9 +122,7 @@ jobs:
             cd backend
             npm i
             npm audit fix --audit-level=critical
-      #- slack/status:
-          #fail_only: true
-            
+
   deploy-infra:
     docker:
       - image: amazon/aws-cli
@@ -151,9 +139,9 @@ jobs:
             echo ${OldWorkflowID}  
             if [ -n "$OldWorkflowID" ]
             then
-              curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" --request PUT --data ${OldWorkflowID} https://api.memstash.io/values/old_workflowID
+            curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" --request PUT --data ${OldWorkflowID}  https://api.memstash.io/values/old_workflowID
             else 
-              echo "No old infrastructure exists for UdaPeople"
+            echo "No old infrastructure exists for UdaPeople"
             fi
             
       - run:
@@ -162,7 +150,7 @@ jobs:
             aws cloudformation deploy \
               --template-file .circleci/files/backend.yml \
               --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="backend-deployment-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags project="${CIRCLE_WORKFLOW_ID:0:7}"
       - run:
           name: deploy frontend infra
@@ -170,7 +158,7 @@ jobs:
             aws cloudformation deploy \
               --template-file .circleci/files/frontend.yml \
               --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags project="${CIRCLE_WORKFLOW_ID:0:7}"
       - run:
           name: Add Backend EC2 Instance IP to inventory
@@ -184,8 +172,6 @@ jobs:
           paths:
             - project/.circleci/ansible/inventory.txt
       - auto-destruct-env
-      #- slack/status:
-          #fail_only: true 
 
   deploy-backend:
     docker:
@@ -227,8 +213,8 @@ jobs:
             tar -czvf ../../backend.tar.gz ../../backend
             ansible-playbook -i inventory.txt main.yml        
       - auto-destruct-env
-      #- slack/status:
-          #fail_only: true
+      - slack/status:
+          fail_only: true
 
   run-migrations:
     docker:
@@ -244,8 +230,8 @@ jobs:
             curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" --request PUT \
             --data $( grep -c "No migrations are pending" migrations.txt ) \
             https://api.memstash.io/values/migration_completion_<< pipeline.id >>
-      #- slack/status:
-          #fail_only: true
+      - slack/status:
+          fail_only: true
 
   deploy-frontend:
     docker:
@@ -281,15 +267,12 @@ jobs:
             npm i
             npm run build      
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID}".tar.gz dist
-      - run:
-          name: deploy to s3 bucket
+      - run: 
+          name: Copy built frontend files to the S3 bucket
           command: |
-            cd frontend
-            aws s3 sync . s3://udapeople-frontend-deployment-${ID}
+            aws s3 cp ./frontend/dist s3://udapeople-frontend-"${CIRCLE_WORKFLOW_ID:0:7}" --recursive  
       - revert-migration
       - auto-destruct-env
-      #- slack/status:
-          #fail_only: true
 
   smoke-test:
     docker:
@@ -324,8 +307,6 @@ jobs:
             fi
       - revert-migration
       - auto-destruct-env
-      #- slack/status:
-          #fail_only: true 
                       
   deploy-cloudfront:
     docker:
@@ -355,19 +336,19 @@ jobs:
             if [ -n "${OldWorkflowID}" ] && [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
             then
               echo "Delete old infrastructure"
-              if aws s3api head-bucket --bucket udapeople-frontend-deployment-${OldWorkflowID}
+              if aws s3api head-bucket --bucket udapeople-frontend-${OldWorkflowID}
               then
-                aws s3 rm s3://udapeople-frontend-deployment-${OldWorkflowID}/ --recursive
+                aws s3 rm s3://udapeople-frontend-${OldWorkflowID}/ --recursive
               fi
               aws cloudformation delete-stack --stack-name cloud-devops-frontend-${OldWorkflowID}
               aws cloudformation delete-stack --stack-name cloud-devops-backend-${OldWorkflowID}
             fi          
       - auto-destruct-env
-      #- slack/status:
-          #fail_only: true
+      - slack/status:
+          fail_only: true
 
 workflows:
-  udapeople:
+  default:
     jobs:
       - build-frontend
       - build-backend
