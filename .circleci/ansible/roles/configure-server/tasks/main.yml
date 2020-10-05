@@ -1,13 +1,29 @@
 ---
-- name: "install node 12.X"
+- name: "update apt packages."
+  become: yes
+  apt:
+    update_cache: yes
+
+- name: "upgrade packages"
+  become: tyes
+  apt:
+    upgrade: yes
+
+- name: "Install Node.js"
   shell: |
     curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
     sudo apt -y upgrade
     sudo apt install -y nodejs
-- name: "Install pm2"
+
+- name: "Install PM2"
   become: true
   npm:
     name: pm2
     global: yes
     production: yes
     state: present
+
+- name: "NPM Install"
+  shell: |
+    cd /home/ubuntu/backend    
+    npm install
