@@ -213,8 +213,6 @@ jobs:
             tar -czvf ../../backend.tar.gz ../../backend
             ansible-playbook -i inventory.txt main.yml        
       - auto-destruct-env
-      - slack/status:
-          fail_only: true
 
   run-migrations:
     docker:
