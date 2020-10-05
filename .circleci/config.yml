@@ -285,8 +285,6 @@ jobs:
       - run:
           name: Smoke test backend
           command: |
-            export API_URL=http://$API_HOST:3030
-            echo "API_URL=$API_URL" >> frontend/.env
             export BACKEND_IP=$(aws ec2 --region us-west-2 describe-instances \
                   --filters Name=instance-state-name,Values=running Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7} \
                   --query 'Reservations[*].Instances[*].PublicIpAddress' \
@@ -295,13 +293,6 @@ jobs:
             API_URL="http://${BACKEND_IP}:3030/api/status"
             echo ${API_URL}
             curl ${API_URL}     
-      - run:
-          name: Baking backend API_URL into the front-end
-          command: |
-            sudo npm install webpack-dev-server -g
-            cd frontend
-            sudo npm i
-            sudo npm run build
       - run:
           name: Smoke test frontend
           command: |
