@@ -4,10 +4,10 @@
   apt:
     update_cache: yes
 
-- name: "upgrade packages"
-  become: tyes
-  apt:
-    upgrade: yes
+#- name: "upgrade packages"
+  #become: yes
+  #apt:
+    #upgrade: yes
 
 - name: "Install Node.js"
   shell: |
