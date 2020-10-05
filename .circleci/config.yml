@@ -325,7 +325,7 @@ jobs:
             export STACKS=$(aws cloudformation list-stacks --query "StackSummaries[*].StackName" --stack-status-filter CREATE_COMPLETE --no-paginate --output text)
             echo Old Workflow Id: "${OldWorkflowID}"
             echo Stacks: "${STACKS}"
-            aws cloudformation update-stack  \
+            aws cloudformation deploy  \
               --stack-name udapeople-cloudfront-${OldWorkflowID} \
               --template-file .circleci/files/cloudfront.yml \
               --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
@@ -342,8 +342,6 @@ jobs:
               aws cloudformation delete-stack --stack-name cloud-devops-backend-${OldWorkflowID}
             fi          
       - auto-destruct-env
-      - slack/status:
-          fail_only: true
 
 workflows:
   default:
