@@ -294,15 +294,15 @@ jobs:
             echo ${BACKEND_IP}
             API_URL="http://${BACKEND_IP}:3030/api/status"
             echo ${API_URL}
-            curl ${API_URL}
+            curl ${API_URL}     
       - run:
-          name: "Baking backend API_URL into the front-end"
+          name: Baking backend API_URL into the front-end
           command: |
             sudo npm install webpack-dev-server -g
             cd frontend
             sudo npm i
             sudo npm run build
-
+      - run:
           name: Smoke test frontend
           command: |
             URL="http://udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-west-2.amazonaws.com/#/employee"
