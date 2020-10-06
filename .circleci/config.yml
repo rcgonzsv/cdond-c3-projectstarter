@@ -286,7 +286,7 @@ jobs:
       - run:
           name: "Baking backend API_URL into the front-end"
           command: |
-            npm install webpack-dev-server -g
+            sudo npm install webpack-dev-server -g
             cd frontend
             sudo npm i
             sudo npm run build    
