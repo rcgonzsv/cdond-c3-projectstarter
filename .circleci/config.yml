@@ -127,7 +127,7 @@ jobs:
       - store_test_results:
           path: ./backend/reports/junit/
 
-  audit-frontend:
+  scan-frontend:
     docker:
       - image: circleci/node
     steps:
@@ -140,7 +140,7 @@ jobs:
             cd frontend
             npm audit fix --audit-level=critical --force
 
-  audit-backend:
+  scan-backend:
     docker:
       - image: circleci/node
     steps:
@@ -426,46 +426,33 @@ workflows:
       #- test-backend:
           #requires:
             #- build-backend
-      #- audit-frontend:
+      #- scan-frontend:
           #requires:
             #- test-frontend
-      #- audit-backend:
+      #- scan-backend:
           #requires:
             #- test-backend
       - deploy-infrastructure:
-          ##requires:
-          #- audit-frontend
-          #- audit-backend
+          #requires: [scan-frontend, scan-backend]
       - configure-infrastructure:
-          requires:
-            - deploy-infrastructure
+          requires: [deploy-infrastructure]
           filters:
             branches:
               only:
                 - master
       - run-migrations:
-          requires:
-            - configure-infrastructure
+          requires: [configure-infrastructure]
       - prepare-frontend-for-deployment:
-          requires:
-            - configure-infrastructure
+          requires: [configure-infrastructure]
       - deploy-frontend:
-          requires:
-            - prepare-frontend-for-deployment
+          requires: [prepare-frontend-for-deployment]
       - smoke-tests:
-          requires:
-              - run-migrations
-              - deploy-frontend
-              - configure-infrastructure
+          requires: [run-migrations, deploy-frontend, deploy-infrastructure]
       - get-last-deployment-id:
-          requires:
+          requires: [deploy-frontend]
               #- smoke-tests
-              - deploy-frontend
       - cloudfront-update:
-          requires:
+          requires: [deploy-frontend]
               #- smoke-tests
-              - deploy-frontend
       #- cleanup-old-resources:
-          #requires:
-              #- get-last-deployment-id
-              #- cloudfront-update
+          #requires: [ get-last-deployment-id, cloudfront-update]
