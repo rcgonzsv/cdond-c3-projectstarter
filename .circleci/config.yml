@@ -282,8 +282,8 @@ jobs:
             else
               return 1
             fi
-      - destroy-environment
-      - revert-migration
+      #- destroy-environment
+      #- revert-migration
   
   
   cloudfront-update:
@@ -357,4 +357,4 @@ workflows:
       - smoke-test:
           requires: [deploy-backend, deploy-frontend]
       - cloudfront-update:
-          requires: [smoke-test]
+          #requires: [smoke-test]
