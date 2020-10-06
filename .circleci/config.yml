@@ -97,35 +97,39 @@ jobs:
             cd backend
             npm i
             npm audit fix --audit-level=critical --force
+
   deploy-infrastructure:
     docker:
       - image: amazon/aws-cli
     steps:
       - checkout
-      - run: yum -y install tar gzip
       - run:
-          name: Ensure backend infrastructure exist
+          name: Install dependencies
+          command: |
+            yum -y install tar gzip
+      - run:
+          name: deploy backend infra
           command: |
             aws cloudformation deploy \
               --template-file .circleci/files/backend.yml \
               --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}" \
-              --tags project=udaPeople
-            URLS=$(aws ec2 describe-instances --region us-west-2 --query "Reservations[*].Instances[*].PublicIpAddress"  --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}"  --output text)
-            echo "URLS=$URLS"
-            echo "${CIRCLE_WORKFLOW_ID}"
-            curl -H "Content-Type: text/plain" -H "token: c763c115-49d9-47a8-897a-33315f7bdc6b" --request PUT --data "$URLS" https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID}
+              --tags project="${CIRCLE_WORKFLOW_ID}"
       - run:
-          name: Ensure frontend infrastructure exist
+          name: deploy frontend infra
           command: |
             aws cloudformation deploy \
               --template-file .circleci/files/frontend.yml \
               --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}" \
-              --tags project=udaPeople
-              ARN=$(aws s3 ls | grep udapeople)
-              echo "ARN=$ARN"
-              curl -H "Content-Type: text/plain" -H "token: c763c115-49d9-47a8-897a-33315f7bdc6b" --request PUT --data "$ARN" https://api.memstash.io/values/arn_${CIRCLE_WORKFLOW_ID}
+              --tags project="${CIRCLE_WORKFLOW_ID}"
+      - run:
+          name: Add Backend EC2 Instance IP to inventory
+          command: |
+            aws ec2 describe-instances \
+              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --output text >> .circleci/ansible/inventory.txt
       - destroy-environment
 
   configure-infrastructure:
@@ -134,20 +138,26 @@ jobs:
     steps:
       - checkout
       - add_ssh_keys:
-          fingerprints: ["54:61:56:0a:70:47:e2:58:51:d7:9c:92:b5:40:6d:8a"]
+          fingerprints: ["0b:f0:04:ba:01:e9:18:d0:78:b4:48:93:6d:fc:9a:22"]
       - run:
           name: Install dependencies
           command: |
-            apk add --update tar gzip ansible nodejs npm curl
+            apk add --update tar gzip ansible nodejs npm
+            apk add --no-cache openssh-client
+            apk add --no-cache --upgrade bash
             pip install awscli
       - run:
-          name: Set up inventory file
+          name: Add env file
           command: |
-            cd .circleci/ansible
-            echo "[web]" >> inventory.txt
-            URLS=$(curl -H "token: c763c115-49d9-47a8-897a-33315f7bdc6b" --request GET https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID})
-            echo "$URLS" >> inventory.txt
-            cat inventory.txt
+            echo "TYPEORM_MIGRATIONS=${TYPEORM_MIGRATIONS}" >> backend/.env
+            echo "TYPEORM_ENTITIES=${TYPEORM_ENTITIES}" >> backend/.env
+            echo "TYPEORM_CONNECTION=${TYPEORM_CONNECTION}" >> backend/.env
+            echo "TYPEORM_HOST=${TYPEORM_HOST}" >> backend/.env
+            echo "TYPEORM_PORT=${TYPEORM_PORT}" >> backend/.env
+            echo "TYPEORM_USERNAME=${TYPEORM_USERNAME}" >> backend/.env
+            echo "TYPEORM_PASSWORD=${TYPEORM_PASSWORD}" >> backend/.env
+            echo "TYPEORM_DATABASE=${TYPEORM_DATABASE}" >> backend/.env
+            echo "ENVIRONMENT=${ENVIRONMENT}" >> backend/.env
       - run:
           name: Configure server with ansible
           command: |
@@ -184,23 +194,26 @@ jobs:
             pip install awscli
       - run:
           name: Get backend url
-          command: | #            echo "${API_URL}"
+          command: | 
             export BACKEND_IP=$(aws ec2 describe-instances \
               --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" \
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
               --output text)
             export API_URL="http://${BACKEND_IP}:3030" 
             echo "API_URL=$API_URL" >> frontend/.env
+            echo "${API_URL}"
       - run:
-          name: Deploy frontend objects
+          name: "Baking backend API_URL into the front-end"
           command: |
-            cd frontend
-            npm install
             npm install webpack-dev-server -g
+            cd frontend
             npm i
-            npm run build
-            cd dist
-            aws s3 sync . s3://udapeople-"${CIRCLE_WORKFLOW_ID}" --delete
+            npm run build      
+            tar -czvf artifact-"${CIRCLE_WORKFLOW_ID}".tar.gz dist
+      - run: 
+          name: Copy built frontend files to the S3 bucket
+          command: |
+            aws s3 cp ./frontend/dist s3://udapeople-"${CIRCLE_WORKFLOW_ID}" --recursive
       - destroy-environment
       - revert-migration
         
@@ -240,26 +253,29 @@ jobs:
       
   smoke-test:
     docker:
-        - image: python:3.7-alpine3.11
+      - image: python:3.7-alpine3.11
     steps:
       - run:
           name: Install dependencies
           command: |
             apk add --update curl
+            apk add --update bash
             pip install awscli
       - run:
           name: Smoke test backend
           command: |
-            BACKEND_IP=$(aws ec2 describe-instances \
-            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" \
-            --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --output text)
-            echo "${BACKEND_IP}"
-            curl "http://${BACKEND_IP}:3030/api/status"
+            export BACKEND_IP=$(aws ec2 --region us-weest-2 describe-instances \
+                  --filters Name=instance-state-name,Values=running Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID} \
+                  --query 'Reservations[*].Instances[*].PublicIpAddress' \
+                  --output text)
+            echo ${BACKEND_IP}
+            API_URL="http://${BACKEND_IP}:3030/api/status"
+            echo ${API_URL}
+            curl ${API_URL}
       - run:
-          name: Smoke test backend
+          name: Smoke test frontend
           command: |
-            URL="http://udapeople-${CIRCLE_WORKFLOW_ID}.s3-website-us-west-2.amazonaws.com/#/employees"
+            URL="http://udapeople-frontend-${CIRCLE_WORKFLOW_ID}.s3-website-us-west-2.amazonaws.com/#/employee"
             if curl -s ${URL} | grep "Welcome"
             then
               return 0
