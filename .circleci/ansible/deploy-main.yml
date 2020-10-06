@@ -1,4 +1,4 @@
----
+  ---
 - name: Bootstrapping servers
   hosts: web
   user: ubuntu
@@ -18,5 +18,4 @@
     - setup:
 
   roles:
-    - configure-prometheus-node-exporter
-    - configure-server
+    - deploy

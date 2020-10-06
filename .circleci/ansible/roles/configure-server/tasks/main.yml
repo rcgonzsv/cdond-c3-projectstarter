@@ -1,21 +1,17 @@
 ---
-- name: "update apt packages."
-  become: yes
+- name: "upgrade packages."
+  become: true
   apt:
+    upgrade: "yes"
+
+- name: "install dependencies."
+  become: true
+  apt:
+    name: ["nodejs", "npm"]
+    state: latest
     update_cache: yes
 
-- name: "upgrade packages"
-  become: yes
-  apt:
-    upgrade: yes
-
-- name: "Install Node.js"
-  shell: |
-    curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    sudo apt -y upgrade
-    sudo apt install -y nodejs
-
-- name: "Install PM2"
+- name: "install pm2"
   become: true
   npm:
     name: pm2
@@ -23,7 +19,7 @@
     production: yes
     state: present
 
-- name: "NPM Install"
-  shell: |
-    cd /home/ubuntu/backend    
-    npm install
+- name: Creates directory
+  file:
+    path: ./dist
+    state: directory
