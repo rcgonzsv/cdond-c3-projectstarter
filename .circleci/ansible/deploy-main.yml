@@ -1,4 +1,4 @@
-  ---
+---
 - name: Bootstrapping servers
   hosts: web
   user: ubuntu
