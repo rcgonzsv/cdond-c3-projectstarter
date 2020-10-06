@@ -128,16 +128,13 @@ jobs:
               --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID}" \
               --tags project="${CIRCLE_WORKFLOW_ID}"
-              ARN=$(aws s3 ls | grep udapeople)
-              echo "ARN=$ARN"
-              curl -H "Content-Type: text/plain" -H "token: c763c115-49d9-47a8-897a-33315f7bdc6b" --request PUT --data "$ARN" https://api.memstash.io/values/arn_${CIRCLE_WORKFLOW_ID}
       - run:
           name: Add Backend EC2 Instance IP to inventory
           command: |
-            URLS=$(aws ec2 describe-instances --region us-west-2 --query "Reservations[*].Instances[*].PublicIpAddress"  --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}"  --output text)
-            echo "URLS=$URLS"
-            echo "${CIRCLE_WORKFLOW_ID}"
-            curl -H "Content-Type: text/plain" -H "token: c763c115-49d9-47a8-897a-33315f7bdc6b" --request PUT --data "$URLS" https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID}  
+            aws ec2 describe-instances \
+              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --output text >> .circleci/ansible/inventory.txt
       - destroy-environment
 
   configure-infrastructure:
