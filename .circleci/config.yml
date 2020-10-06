@@ -6,14 +6,19 @@ commands:
     description: Destroy backend and frontend cloudformation stacks given a workflow ID.
     steps:
       - run:
-          name: Destroy environment
+          name: Delete all files from the current S3 bucket
           command: |
-            aws s3 rm "s3://udapeople-${CIRCLE_WORKFLOW_ID}" --recursive
-            aws cloudformation delete-stack --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID}"
-            aws cloudformation delete-stack --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID}"
-            curl -H "Content-Type: text/plain" -H "token: c763c115-49d9-47a8-897a-33315f7bdc6b" --request PUT --data "" https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID}
-            curl -H "Content-Type: text/plain" -H "token: c763c115-49d9-47a8-897a-33315f7bdc6b" --request PUT --data "" https://api.memstash.io/values/arn_${CIRCLE_WORKFLOW_ID}
+            if aws s3api head-bucket --bucket udapeople-frontend-${CIRCLE_WORKFLOW_ID}
+            then
+              aws s3 rm s3://udapeople-frontend-${CIRCLE_WORKFLOW_ID}/ --recursive
+            fi
           when: on_fail
+      - run:
+          name: Delete the current CloudFormation stacks
+          command: |
+            aws cloudformation delete-stack --stack-name udapeople-backend-${CIRCLE_WORKFLOW_ID}
+            aws cloudformation delete-stack --stack-name udapeople-frontend-${CIRCLE_WORKFLOW_ID}
+          when: on_fail 
 
   revert-migration:
     description: Revert the last migration if successfully run in the current workflow.
@@ -282,8 +287,8 @@ jobs:
             else
               return 1
             fi
-      - destroy-environment
-      - revert-migration
+      #- destroy-environment
+      #- revert-migration
   
   
   cloudfront-update:
@@ -323,8 +328,8 @@ jobs:
               aws cloudformation delete-stack --stack-name "udapeople-backend-${OldWorkflowID}"
               aws cloudformation delete-stack --stack-name "udapeople-frontend-${OldWorkflowID}"
             fi
-      - destroy-environment
-      - revert-migration
+      #- destroy-environment
+      #- revert-migration
 
             
 workflows:
@@ -357,4 +362,4 @@ workflows:
       - smoke-test:
           requires: [deploy-backend, deploy-frontend]
       - cloudfront-update:
-          requires: [run-migrations]
+          requires: [smoke-test]
