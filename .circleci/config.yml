@@ -184,13 +184,20 @@ jobs:
             pip install awscli
       - run:
           name: Get backend url
-          command: |
+          command: | #            echo "${API_URL}"
             export BACKEND_IP=$(aws ec2 describe-instances \
               --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" \
               --query 'Reservations[*].Instances[*].PublicIpAddress' \
               --output text)
-            export API_URL="http://${BACKEND_IP}:3030"
-            echo "${API_URL}"
+            export API_URL="http://${BACKEND_IP}:3030" 
+            echo "API_URL=$API_URL" >> frontend/.env
+      - run:
+          name: "Baking backend API_URL into the front-end"
+          command: |
+            sudo npm install webpack-dev-server -g
+            cd frontend
+            sudo npm i
+            sudo npm run build
       - run:
           name: Deploy frontend objects
           command: |
@@ -235,8 +242,7 @@ jobs:
             ansible-playbook -i inventory.txt deploy-main.yml
       - destroy-environment
       - revert-migration
-           
-
+      
   smoke-test:
     docker:
         - image: python:3.7-alpine3.11
