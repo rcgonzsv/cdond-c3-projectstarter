@@ -6,11 +6,20 @@ Parameters:
     Type: String
 
 Resources:
+  udaVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: 'false'
+      EnableDnsHostnames: 'false'
+      InstanceTenancy: default
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: !Sub UdaPeople-${ID}
       GroupDescription: Allow port 22 and port 3030.
+      VpcId:
+         Ref: udaVPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 22
