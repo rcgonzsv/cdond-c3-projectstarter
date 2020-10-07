@@ -186,7 +186,7 @@ jobs:
           when: on_fail        
       - run:
           name: Save old bucket arn
-          command: echo "arn:aws:s3:::`aws s3 ls | awk '{ print $3 } ' | grep udapeople-frontend-deployment`" > /tmp/saveme/old_s3arn.txt
+          command: echo "arn:aws:s3:::`aws s3 ls | awk '{ print $3 } ' | grep udapeople-frontend`" > /tmp/saveme/old_s3arn.txt
       - persist_to_workspace:
           root: /tmp/saveme
           paths:
@@ -402,7 +402,7 @@ jobs:
           command: |
             OldPipelineID=$(cat /tmp/saveme/last_deployment_id.txt)
             echo Old pipeline ID: ${OldPipelineID}
-            aws s3 rm s3://udapeople-frontend-deployment-${OldPipelineID} --recursive
+            aws s3 rm s3://udapeople-frontend-${OldPipelineID} --recursive
             aws cloudformation delete-stack --stack-name backend-${OldPipelineID}
             aws cloudformation delete-stack --stack-name frontend-${OldPipelineID}  
 workflows:
