@@ -236,7 +236,7 @@ jobs:
       - persist_to_workspace:
           root: /tmp/saveme
           paths:
-            - backend_url.txt
+            - public_dns.txt
 
   run-migrations:
     docker:
