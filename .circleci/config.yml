@@ -145,6 +145,7 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
+      - run: mkdir /tmp/saveme
       - run: yum -y install tar gzip
       - run:
           name: Ensure backend infrastructure exist
@@ -154,11 +155,12 @@ jobs:
               --stack-name "backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="backend-deployment-${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags project=udaPeople
-            URLS=$(aws ec2 describe-instances --region us-west-2 --query "Reservations[*].Instances[*].PublicIpAddress"  --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}"  --output text)
+            URLS=$(aws ec2 describe-instances --region us-west-2 --query "Reservations[*].Instances[*].PublicIpAddress"  --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}"  --output text) > /tmp/saveme/URLS.txt)
             echo "URLS=$URLS"
-            echo "${CIRCLE_WORKFLOW_ID:0:7}"
-            curl -H "Content-Type: text/plain" -H "token: c763c115-49d9-47a8-897a-33315f7bdc6b" --request PUT --data "$URLS" https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID:0:7}
-      - run:
+      - persist_to_workspace:
+          root: /tmp/saveme
+          paths:
+            - URLS.txt             
           name: Ensure frontend infrastructure exist
           command: |
             aws cloudformation deploy \
@@ -166,9 +168,12 @@ jobs:
               --stack-name "frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags project=udaPeople
-              ARN=$(aws s3 ls | grep udapeople)
+              ARN=$(aws s3 ls | grep udapeople) > /tmp/saveme/old_s3arn.txt
               echo "ARN=$ARN"
-              curl -H "Content-Type: text/plain" -H "token: c763c115-49d9-47a8-897a-33315f7bdc6b" --request PUT --data "$ARN" https://api.memstash.io/values/arn_${CIRCLE_WORKFLOW_ID}
+      - persist_to_workspace:
+          root: /tmp/saveme
+          paths:
+            - old_s3arn.txt
 
   configure-infrastructure:
     docker:
@@ -177,6 +182,8 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints: ["0b:f0:04:ba:01:e9:18:d0:78:b4:48:93:6d:fc:9a:22"]
+      - attach_workspace:
+          at: /tmp/saveme          
       - run:
           name: Install Ansible
           command: |
@@ -188,12 +195,13 @@ jobs:
           command: |
             cd .circleci/ansible
             echo "[web]" >> inventory.txt
-            export URLS=$(curl -H "token: c763c115-49d9-47a8-897a-33315f7bdc6b" --request GET https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID})
-            echo "$URLS" >> inventory.txt
+            cat /tmp/saveme/URLS.txt >> inventory.txt
+            echo inventory.txt
             cat inventory.txt
       - run:
           name: Run playbook
           command: |
+            ls -l /tmp/saveme
             cd .circleci/ansible
             ansible-playbook -i inventory.txt configure-main.yml
 
@@ -219,6 +227,8 @@ jobs:
     docker:
       - image: python:3.7-alpine3.11
     steps:
+      - attach_workspace:
+          at: /tmp/saveme
       - checkout
       - run:
           name: Install dependencies
@@ -228,10 +238,8 @@ jobs:
       - run:
           name: Get backend url
           command: |
-            export BACKEND_IP=$(aws ec2 describe-instances \
-              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --query 'Reservations[*].Instances[*].PublicIpAddress' \
-              --output text)
+            export BACKEND_IP=$(cat /tmp/saveme/URLS.txt)
+            echo BACKEND_IP: ${BACKEND_URL}
             export API_URL="http://${BACKEND_IP}:3030"
             echo "${API_URL}"
       - run:
@@ -257,14 +265,6 @@ jobs:
           command: |
             apk add --update tar gzip ansible nodejs npm curl
             pip install awscli
-      - run:
-          name: Set up inventory file
-          command: |
-            cd .circleci/ansible
-            echo "[web]" >> inventory.txt
-            export URLS=$(curl -H "token: c763c115-49d9-47a8-897a-33315f7bdc6b" --request GET https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID})
-            echo "$URLS" >> inventory.txt
-            cat inventory.txt
       - run:
           name: Build and deploy backend
           command: |
@@ -298,7 +298,7 @@ jobs:
             echo "${BACKEND_IP}"
             curl "http://${BACKEND_IP}:3030/api/status"
       - run:
-          name: Smoke test backend
+          name: Smoke test frontend
           command: |
             URL="http://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-west-2.amazonaws.com/#/employees"
             if curl -s ${URL} | grep "Welcome"
