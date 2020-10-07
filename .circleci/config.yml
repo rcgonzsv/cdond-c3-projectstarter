@@ -378,9 +378,13 @@ workflows:
           requires: [deploy-infrastructure]
       - run-migrations:
           requires: [configure-infrastructure]
-      - smoke-test:
-          requires: [run-migrations, deploy-frontend, deploy-infrastructure]
-      - cloudfront-update:
+      - deploy-frontend:
           requires: [run-migrations]
-      #- cleanup-old-resources:
-          #requires: [cloudfront-update]
+      - deploy-backend:    
+          requires: [run-migrations]
+      - smoke-test:
+          requires: [deploy-frontend, deploy-backend]
+      - cloudfront-update:
+          requires: [smoke-test]
+      - cleanup-old-resources:
+          requires: [cloudfront-update]
