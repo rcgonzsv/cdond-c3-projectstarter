@@ -174,7 +174,7 @@ jobs:
             PUBLIC_DNS=$(aws ec2 describe-instances --region ${AWS_DEFAULT_REGION} \
               --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --query "Reservations[*].Instances[0].PublicDnsName" \
-              --output text) > /tmp/saveme/public_dns.txt
+              --output text) > /tmp/saveme/backend_url.txt
       - persist_to_workspace:
           root: /tmp/saveme
           paths:
@@ -184,13 +184,6 @@ jobs:
           command: |
             aws cloudformation describe-stack-events --stack-name "backend-${CIRCLE_WORKFLOW_ID:0:7}"
           when: on_fail        
-      - run:
-          name: Save URL
-          command: |
-            aws ec2 describe-instances --region ${AWS_DEFAULT_REGION} \
-              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --query "Reservations[*].Instances[0].PublicDnsName" \
-              --output text > /tmp/saveme/backend_url.txt
       - persist_to_workspace:
           root: /tmp/saveme
           paths:
