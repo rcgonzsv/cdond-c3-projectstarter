@@ -22,7 +22,7 @@ commands:
       - run:
           name: Destroy frontend
           command: |
-            aws s3 rm s3://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+            aws s3 rm s3://udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7} --recursive
             aws cloudformation delete-stack --stack-name frontend-${CIRCLE_WORKFLOW_ID:0:7}
           when: on_fail
 
@@ -167,7 +167,7 @@ jobs:
             aws cloudformation deploy \
               --template-file backend.yml \
               --stack-name "backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="backend-deployment-${CIRCLE_WORKFLOW_ID:0:7}"
+              --parameter-overrides ID="backend-${CIRCLE_WORKFLOW_ID:0:7}"
       - run:
           name: Get and save public DNS of EC2 instance to https://memstash.io/
           command: |
@@ -185,16 +185,6 @@ jobs:
             aws cloudformation describe-stack-events --stack-name "backend-${CIRCLE_WORKFLOW_ID:0:7}"
           when: on_fail        
       - run:
-          name: Save URL
-          command: |
-            aws ec2 describe-instances --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --query "Reservations[*].Instances[*].[PublicDnsName]" \
-              --output text > /tmp/saveme/backend_url.txt
-      - persist_to_workspace:
-          root: /tmp/saveme
-          paths:
-            - backend_url.txt
-      - run:
           name: Save old bucket arn
           command: echo "arn:aws:s3:::`aws s3 ls | awk '{ print $3 } ' | grep udapeople-frontend-deployment`" > /tmp/saveme/old_s3arn.txt
       - persist_to_workspace:
@@ -207,7 +197,7 @@ jobs:
             cd .circleci/files
             aws cloudformation deploy --template-file frontend.yml \
               --stack-name "frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags project=udacity
       - run:
           name: Frontend failure describe
@@ -234,7 +224,7 @@ jobs:
           name: Make inventory for Ansible
           command: |
             echo "[backend]" > .circleci/ansible/inventory.txt
-            cat /tmp/saveme/backend_url.txt >> .circleci/ansible/inventory.txt
+            cat /tmp/saveme/public_dns.txt >> .circleci/ansible/inventory.txt
             echo .circleci/ansible/inventory.txt
             cat .circleci/ansible/inventory.txt
       - run:
@@ -278,7 +268,7 @@ jobs:
       - run:
           name: Build frontend
           command: |
-            BACKEND_URL=$(cat /tmp/saveme/backend_url.txt)
+            BACKEND_URL=$(cat /tmp/saveme/public_dns.txt)
             echo BACKEND_URL: ${BACKEND_URL}
             export API_URL=http://${BACKEND_URL}:3030
             echo "API_URL=$API_URL" >> frontend/.env 
@@ -321,7 +311,7 @@ jobs:
             name: deploy to s3 bucket
             command: |
               cd ~/frontend
-              aws s3 sync . s3://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}
+              aws s3 sync . s3://udapeople-frontend${CIRCLE_WORKFLOW_ID:0:7}
   smoke-tests:
     docker:
       - image: python:3.7-alpine3.11
@@ -341,7 +331,7 @@ jobs:
       - run:
           name: Smoke test on frontend
           command: |
-            URL="http://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}.s3-website.us-west-2.amazonaws.com/#/employees"
+            URL="http://udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}.s3-website.us-west-2.amazonaws.com/#/employees"
             if curl -s ${URL} | grep "Welcome"
             then
               return 0
