@@ -226,14 +226,14 @@ jobs:
       - run:
           name: Get backend url
           command: |
-            export BACKEND_IP=$(curl -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
-            --request GET https://api.memstash.io/values/backend_ip)
-            echo ${BACKEND_IP}
+            export BACKEND_IP=$(aws ec2 describe-instances \
+              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --output text)
             export API_URL="http://${BACKEND_IP}:3030"
+            echo "${API_URL}"
             curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
-            --request PUT --data "$API_URL" https://api.memstash.io/values/API_URL
-            echo "$API_URL"
-
+            --request PUT --data "${API_URL}" https://api.memstash.io/values/API_URL
       - run:
           name: Deploy frontend objects
           command: |
