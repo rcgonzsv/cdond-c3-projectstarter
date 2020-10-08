@@ -263,23 +263,27 @@ jobs:
             npm i
             npm run build    
       - run:
-          name: Extract frontend build
+          name: Compress build files
           command: |
             cd frontend/dist
             tar zcvf /tmp/saveme/frontend.tar.gz
       - persist_to_workspace:
           root: /tmp/saveme
           paths:
+            - frontend.tar.gz
+      - persist_to_workspace:
+          root: /tmp/saveme
+          paths:
             - frontend.tar.gz 
       - run:
-            name: Compress build files
-            command: |
-              echo `ls /tmp/saveme`
-              mkdir ~/frontend
-              cp /tmp/saveme/frontend.tar.gz ~/frontend
-              cd ~/frontend
-              tar -zxvf frontend.tar.gz
-              echo `ls -la`
+          name: Extract frontend build
+          command: |
+            echo `ls /tmp/saveme`
+            mkdir ~/frontend
+            cp /tmp/saveme/frontend.tar.gz ~/frontend
+            cd ~/frontend
+            tar -zxvf frontend.tar.gz
+            echo `ls -la`
       - run:
             name: deploy to s3 bucket
             command: |
