@@ -256,8 +256,6 @@ jobs:
             echo BACKEND_URL: ${BACKEND_URL}
             export API_URL=http://${BACKEND_URL}:3030
             echo "API_URL=$API_URL" >> frontend/.env 
-            cd frontend            
-            npm run build
       - run:
           name: "Deploy frontend objects"
           command: |
