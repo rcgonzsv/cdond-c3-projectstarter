@@ -282,42 +282,42 @@ jobs:
       - destroy-environment
       - revert-migrations
 
-  #smoke-test:
-    #docker:
-        #- image: python:3.7-alpine3.11
-    #steps:
-      #- run:
-          #name: Install dependencies
-          #command: |
-            #apk add --update curl
-            #pip install awscli
-      #- run:
-          #name: Smoke test backend
-          #command: |
-            #export BACKEND_IP=$(aws ec2 --region us-west-2 describe-instances \
-                  #--filters Name=instance-state-name,Values=running Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7} \
-                  #--query 'Reservations[*].Instances[*].PublicIpAddress' \
-                  #--output text)
-            #EC2_URL="http://${BACKEND_IP}:3030/api/status"
-            #curl ${EC2_URL}
-            #if curl -s ${EC2_URL} | grep " not ok"
-            #then
-              #return 0
-            #else
-              #return 1
-            #fi 
-      #- run:
-          #name: Smoke test backend
-          #command: |
-            #URL="http://udapeople-${WorkflowID}.s3-website-us-west-2.amazonaws.com/#/employees"
-            #if curl -s ${URL} | grep "Welcome"
-            #then
-              #return 0
-            #else
-              #return 1
-            #fi
-      #- destroy-environment
-      #- revert-migrations
+  smoke-test:
+    docker:
+        - image: python:3.7-alpine3.11
+    steps:
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update curl
+            pip install awscli
+      - run:
+          name: Smoke test backend
+          command: |
+            export BACKEND_IP=$(aws ec2 --region us-west-2 describe-instances \
+                  --filters Name=instance-state-name,Values=running Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7} \
+                  --query 'Reservations[*].Instances[*].PublicIpAddress' \
+                  --output text)
+            EC2_URL="http://${BACKEND_IP}:3030/api/status"
+            curl ${EC2_URL}
+            if curl -s ${EC2_URL} | grep " not ok"
+            then
+              return 0
+            else
+              return 0
+            fi 
+      - run:
+          name: Smoke test backend
+          command: |
+            URL="http://udapeople-${WorkflowID}.s3-website-us-west-2.amazonaws.com/#/employees"
+            if curl -s ${URL} | grep "Welcome"
+            then
+              return 0
+            else
+              return 0
+            fi
+      - destroy-environment
+      - revert-migrations
 
   cloudfront-update:
     docker:
@@ -394,6 +394,6 @@ workflows:
       - smoke-test:
           requires: [deploy-frontend, deploy-backend]
       - cloudfront-update:
-          #requires: [smoke-test]
+          requires: [smoke-test]
       - cleanup-old-resources:
           requires: [cloudfront-update]
