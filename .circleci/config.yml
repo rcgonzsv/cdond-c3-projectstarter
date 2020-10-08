@@ -253,8 +253,8 @@ jobs:
           command: |
             BACKEND_URL=$(cat /tmp/saveme/backend_url.txt)
             echo BACKEND_URL: ${BACKEND_URL}
-            export API_URL=http://${BACKEND_URL}:3030
-            echo "API_URL=$API_URL" >> frontend/.env 
+            export API_URL="http://${BACKEND_URL}:3030"
+            echo "${API_URL}" >> frontend/.env 
       - run:
           name: "Deploy frontend objects"
           command: |
@@ -263,16 +263,16 @@ jobs:
             npm i
             npm run build    
       - run:
-          name: Compress build files
+          name: Extract frontend build
           command: |
             cd frontend/dist
-            tar -zcvf /tmp/saveme/frontend.tar.gz ./
+            tar zcvf /tmp/saveme/frontend.tar.gz
       - persist_to_workspace:
           root: /tmp/saveme
           paths:
             - frontend.tar.gz 
       - run:
-            name: Extract frontend build
+            name: Compress build files
             command: |
               echo `ls /tmp/saveme`
               mkdir ~/frontend
@@ -309,6 +309,19 @@ jobs:
             --request GET https://api.memstash.io/values/public_dns)
             echo "$PUBLIC_DNS" >> inventory.txt
             cat inventory.txt
+      - run:
+          name: Copy backend for Ansible
+          command: |
+              mkdir /tmp/saveme
+              cp ./backend/package.json /tmp/saveme/
+              cd backend
+              tar -zcvf /tmp/saveme/backend.tar.gz ./
+              ls -l /tmp/saveme/backend.tar.gz
+      - persist_to_workspace:
+          root: /tmp/saveme
+          paths:
+            - backend.tar.gz
+            - package.json            
       - run:
           name: Build and deploy backend
           command: |
@@ -353,10 +366,10 @@ jobs:
           name: Smoke test on backend
           command: |
             BACKEND_IP=$(aws ec2 describe-instances \
-              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --query 'Reservations[*].Instances[*].PublicIpAddress' \
-              --output text)
-            echo ${BACKEND_IP}
+            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --output text)
+            echo "${BACKEND_IP}"
             curl "http://${BACKEND_IP}:3030/api/status"
       - destroy-environment
       - revert-migrations

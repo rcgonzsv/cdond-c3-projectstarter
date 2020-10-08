@@ -1,34 +1,25 @@
----
-- name: "upgrade packages."
-  become: true
-  apt:
-    upgrade: "yes"
-
-- name: "install dependencies."
-  become: true
-  apt:
-    name: ["nodejs", "npm", "tar"]
-    state: latest
-    update_cache: yes
-
-- name: "Copy dist files"
-  become: true
-  copy:
-    src: files/backend_artifact.tar.gz
-    dest: ./dist
-
-- name: "Unpack dist files"
+  
+# - name: "Makedir"
+#   file:
+#     path: /home/ubuntu/backend
+#     state: directory
+# - name: "move backend files to server."
+#   copy:
+#     src: /root/project/backend
+#     dest: /home/ubuntu
+# 
+# - name: "NPM Install"
+#   shell: |
+#     cd /home/ubuntu/backend    
+#     npm install 
+    
+- name: "Build"
+  shell: |
+    cd /home/ubuntu/backend
+    npm run build
+    
+- name: "Run it"
   become: true
   shell: |
-    cd dist
-    tar -xzf backend_artifact.tar.gz
-    rm backend_artifact.tar.gz
-- name: Delete old pm2 process
-  become: true
-  command: pm2 delete app
-  ignore_errors: yes
-
-- name: Executing node
-  become: true
-  shell: |
-    pm2 start -x -i 4 --name "app" ./dist/main.js
+    cd /home/ubuntu/backend 
+    pm2 start npm -- run "start:dev"
