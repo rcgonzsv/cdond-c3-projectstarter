@@ -22,7 +22,6 @@ commands:
           name: Destroy frontend
           command: |
             aws s3 rm s3://udas3-${CIRCLE_WORKFLOW_ID:0:7} --recursive
-            aws cloudformation delete-stack --stack-name backend-${CIRCLE_WORKFLOW_ID:0:7}
             aws cloudformation delete-stack --stack-name frontend-${CIRCLE_WORKFLOW_ID:0:7}
           when: on_fail
 
@@ -155,7 +154,6 @@ jobs:
               --stack-name "backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags 'Key=project,Value=udapeople-${CIRCLE_WORKFLOW_ID:0:7}'
-
       - run:
           name: Get and save public DNS of EC2 instance to https://memstash.io/
           command: | 
@@ -260,10 +258,10 @@ jobs:
       - run:
           name: "Deploy frontend objects"
           command: |
-            sudo npm install webpack-dev-server -g
+            npm install webpack-dev-server -g
             cd frontend
-            sudo npm i
-            sudo npm run build    
+            npm i
+            npm run build    
       - run:
           name: Compress build files
           command: |
