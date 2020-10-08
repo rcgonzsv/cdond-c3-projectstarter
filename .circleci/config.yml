@@ -266,7 +266,7 @@ jobs:
           name: Compress build files
           command: |
             cd frontend/dist
-            tar zcvf /tmp/saveme/frontend.tar.gz
+            tar -zcvf /tmp/saveme/frontend.tar.gz
       - persist_to_workspace:
           root: /tmp/saveme
           paths:
