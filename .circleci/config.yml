@@ -153,12 +153,9 @@ jobs:
               --template-file .circleci/files/backend.yml \
               --stack-name "backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="backend-deployment-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --tags project="${CIRCLE_WORKFLOW_ID:0:7}"
-            URLS=$(aws ec2 describe-instances --region us-west-2 --query "Reservations[*].Instances[*].PublicIpAddress" --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" --output text)
-            echo "URLS=$URLS"
-            echo "${CIRCLE_WORKFLOW_ID:0:7}"
+              --tags project=udaPeople
             curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
-            request PUT --data "$URLS" https://api.memstash.io/values/URL
+            --request PUT --data "${BACKEND_IP}" https://api.memstash.io/values/backend_ip
       - run:
           name: Ensure frontend infrastructure exist
           command: |
@@ -166,7 +163,7 @@ jobs:
               --template-file .circleci/files/frontend.yml \
               --stack-name "frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --tags project="${CIRCLE_WORKFLOW_ID:0:7}"
+              --tags project=udaPeople
               ARN=$(aws s3 ls | grep udapeople)
               echo "ARN=$ARN"
               curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
@@ -190,9 +187,10 @@ jobs:
           command: |
             cd .circleci/ansible
             echo "[web]" >> inventory.txt
-            export URLS=$(curl -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \ 
-            --request GET https://api.memstash.io/values/URL)
-            echo "$URLS" >> inventory.txt
+            export BACKEND_IP=$(curl -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
+            --request GET https://api.memstash.io/values/backend_ip)
+            echo ${BACKEND_IP}
+            echo "$BACKEND_IP" >> inventory.txt
             cat inventory.txt
       - run:
           name: Run playbook
@@ -231,12 +229,14 @@ jobs:
       - run:
           name: Get backend url
           command: |
-            export $API_HOST=$(aws ec2 describe-instances \
-              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --query 'Reservations[*].Instances[*].PublicIpAddress' \
-              --output text)
-            export API_URL=http://$API_HOST:3030
-            echo "API_URL=$API_URL" >> frontend/.env
+            export BACKEND_IP=$(curl -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
+            --request GET https://api.memstash.io/values/backend_ip)
+            echo ${BACKEND_IP}
+            export API_URL="http://${BACKEND_IP}:3030"
+            curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
+            --request PUT --data "$API_URL" https://api.memstash.io/values/API_URL
+            echo "$API_URL"
+
       - run:
           name: Deploy frontend objects
           command: |
@@ -265,9 +265,9 @@ jobs:
           command: |
             cd .circleci/ansible
             echo "[web]" >> inventory.txt
-            export URLS=$(curl -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \ 
-            --request GET https://api.memstash.io/values/URL)
-            echo "$URLS" >> inventory.txt
+            export BACKEND_IP=$(curl -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
+            --request GET https://api.memstash.io/values/backend_ip)
+            echo "$BACKEND_IP" >> inventory.txt
             cat inventory.txt
       - run:
           name: Build and deploy backend
@@ -346,7 +346,7 @@ jobs:
               --template-file .circleci/files/cloudfront.yml \
               --stack-name udapeople-cloudfront \
               --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
-              --tags project="${CIRCLE_WORKFLOW_ID:0:7}" 
+              --tags project=udaPeople 
 
   cleanup-old-resources:
     docker:
