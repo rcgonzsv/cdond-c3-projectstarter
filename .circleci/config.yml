@@ -238,11 +238,10 @@ jobs:
           name: Deploy frontend objects
           command: |
             cd frontend
-            npm install webpack-dev-server -g
             npm install
             npm run build
             cd dist
-            aws s3 sync . s3://udas3-${CIRCLE_WORKFLOW_ID:0:7}" --recursive
+            aws s3 cp ./frontend/dist s3://udas3-${CIRCLE_WORKFLOW_ID:0:7}" --recursive
       - destroy-environment
       - revert-migrations
         
