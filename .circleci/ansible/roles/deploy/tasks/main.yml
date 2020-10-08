@@ -11,6 +11,18 @@
     state: latest
     update_cache: yes
 
+- name: "Copy dist files"
+  become: true
+  copy:
+    src: files/backend_artifact.tar.gz
+    dest: ./dist
+
+- name: "Unpack dist files"
+  become: true
+  shell: |
+    cd dist
+    tar -xzf backend_artifact.tar.gz .
+    rm backend_artifact.tar.gz
 - name: Delete old pm2 process
   become: true
   command: pm2 delete app
