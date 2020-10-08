@@ -161,8 +161,8 @@ jobs:
             URLS=$(aws ec2 describe-instances --region us-west-2 --query "Reservations[*].Instances[*].PublicIpAddress"  --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}"  --output text)
             echo "URLS=$URLS"
             echo "${CIRCLE_WORKFLOW_ID}"
-            curl -H "Content-Type: text/plain" -H "token: c763c115-49d9-47a8-897a-33315f7bdc6b" \
-            --request PUT --data "$URLS" https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID}
+            curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID}" \
+            --request PUT --data "$URLS" https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID}}
 
       - run:
           name: Ensure frontend infrastructure exist
@@ -176,8 +176,8 @@ jobs:
           name: Save bucket arn
           command: | 
             echo "arn:aws:s3:::`aws s3 ls | awk '{ print $3 } ' | grep udapeople-frontend-deployment`"
-            curl -H "Content-Type: text/plain" -H "token: c763c115-49d9-47a8-897a-33315f7bdc6b" \
-            --request PUT --data "$ARN" https://api.memstash.io/values/arn_${CIRCLE_WORKFLOW_ID}
+            curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID}" \
+            --request PUT --data "$ARN" https://api.memstash.io/values/arn_${CIRCLE_WORKFLOW_ID}}
             
       - destroy-environment
 
@@ -199,8 +199,8 @@ jobs:
           command: |
             cd .circleci/ansible
             echo "[web]" >> inventory.txt
-            URLS=$(curl -H "token: c763c115-49d9-47a8-897a-33315f7bdc6b" \ 
-            --request GET https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID:0:7})
+            URLS=$(curl -H "token: ${CIRCLE_WORKFLOW_ID}" \ 
+            --request GET https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID})
             echo "$URLS" >> inventory.txt
             cat inventory.txt
       - run:
@@ -277,7 +277,7 @@ jobs:
           command: |
             cd .circleci/ansible
             echo "[web]" >> inventory.txt
-            URLS=$(curl -H "token: c763c115-49d9-47a8-897a-33315f7bdc6b" \ 
+            URLS=$(curl -H "token: ${CIRCLE_WORKFLOW_ID}" \ 
             --request GET https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID})
             echo "$URLS" >> inventory.txt
             cat inventory.txt
