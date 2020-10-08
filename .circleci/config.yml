@@ -21,7 +21,7 @@ commands:
       - run:
           name: Destroy frontend
           command: |
-            aws s3 rm s3://udas3-backend-deployment-${CIRCLE_WORKFLOW_ID:0:7} --recursive
+            aws s3 rm s3://udas3-${CIRCLE_WORKFLOW_ID:0:7} --recursive
             aws cloudformation delete-stack --stack-name backend-${CIRCLE_WORKFLOW_ID:0:7}
             aws cloudformation delete-stack --stack-name frontend-${CIRCLE_WORKFLOW_ID:0:7}
           when: on_fail
@@ -152,7 +152,7 @@ jobs:
             aws cloudformation deploy \
               --template-file .circleci/files/backend.yml \
               --stack-name "backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="backend-deployment-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags 'Key=project,Value=udapeople-${CIRCLE_WORKFLOW_ID:0:7}' 
             curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
             --request PUT --data "${BACKEND_IP}" https://api.memstash.io/values/backend_ip
@@ -162,7 +162,7 @@ jobs:
             aws cloudformation deploy \
               --template-file .circleci/files/frontend.yml \
               --stack-name "frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="backend-deployment-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
               --tags 'Key=project,Value=udapeople-${CIRCLE_WORKFLOW_ID:0:7}' 
 
 
@@ -241,7 +241,7 @@ jobs:
             npm install
             npm run build
             cd dist
-            aws s3 sync . s3://udas3-backend-deployment-${CIRCLE_WORKFLOW_ID:0:7} --delete
+            aws s3 sync . s3://udas3-${CIRCLE_WORKFLOW_ID:0:7} --delete
       - destroy-environment
       - revert-migrations
         
@@ -289,21 +289,21 @@ jobs:
           command: |
             apk add --update curl
             pip install awscli
-      - run:
-          name: Smoke test backend
-          command: |
-            export BACKEND_IP=$(aws ec2 --region us-west-2 describe-instances \
-                  --filters Name=instance-state-name,Values=running Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7} \
-                  --query 'Reservations[*].Instances[*].PublicIpAddress' \
-                  --output text)
-            EC2_URL="http://${BACKEND_IP}:3030/api/status"
-            curl ${EC2_URL}
-            if curl -s ${EC2_URL} | grep " not ok"
-            then
-              return 0
-            else
-              return 1
-            fi 
+      #- run:
+          #name: Smoke test backend
+          #command: |
+            #export BACKEND_IP=$(aws ec2 --region us-west-2 describe-instances \
+                  #--filters Name=instance-state-name,Values=running Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7} \
+                  #--query 'Reservations[*].Instances[*].PublicIpAddress' \
+                  #--output text)
+            #EC2_URL="http://${BACKEND_IP}:3030/api/status"
+            #curl ${EC2_URL}
+            #if curl -s ${EC2_URL} | grep " not ok"
+            #then
+              #return 0
+            #else
+              #return 1
+            #fi 
       - run:
           name: Smoke test backend
           command: |
@@ -358,7 +358,7 @@ jobs:
             if echo "$STACKS[*]" | grep -Eq "$OldWorkflowID" 
             then
               echo "${OldWorkflowID}"
-              aws s3 rm "s3://udas3-backend-deployment-${OldWorkflowID}" --recursive
+              aws s3 rm "s3://udas3-${OldWorkflowID}" --recursive
               aws cloudformation delete-stack --stack-name "backend-${OldWorkflowID}"
               aws cloudformation delete-stack --stack-name "frontend-${OldWorkflowID}"
             fi 
