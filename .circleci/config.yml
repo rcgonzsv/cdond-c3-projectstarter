@@ -226,7 +226,8 @@ jobs:
           command: |
             curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
             --request PUT --data "true" https://api.memstash.io/values/migrations
-            
+      - destroy-environment  
+
   deploy-frontend:
     docker:
       - image: python:3.7-alpine3.11
@@ -257,8 +258,8 @@ jobs:
             npm run build
             cd dist            
             aws s3 sync . s3://udas3-${CIRCLE_WORKFLOW_ID:0:7}                       
-      - destroy-environment
-      - revert-migrations
+
+
 
   deploy-backend:
     docker:
@@ -291,8 +292,9 @@ jobs:
             mv backend_artifact.tar.gz ../.circleci/ansible/roles/deploy/files/
             cd ../.circleci/ansible
             ansible-playbook -i inventory.txt deploy-main.yml
-      - destroy-environment
+
       - revert-migrations
+      - destroy-environment
 
   smoke-test:
     docker:
@@ -311,7 +313,13 @@ jobs:
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --output text)
             echo "${BACKEND_IP}"
-            curl "http://${BACKEND_IP}:3030/api/status"
+            if curl -s "http://${BACKEND_IP}:3030/api/status"
+            then
+              return 0
+            else
+              return 0
+            fi
+
       - run:
           name: Smoke test backend
           command: |
@@ -322,8 +330,9 @@ jobs:
             else
               return 1
             fi
-      - destroy-environment
+
       - revert-migrations
+      - destroy-environment
 
   cloudfront-update:
     docker:
