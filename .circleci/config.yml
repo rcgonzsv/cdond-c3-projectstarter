@@ -133,7 +133,7 @@ jobs:
     steps:
       - checkout
       - npm-install:
-          end: "backend"
+          end: "backend"  
       - run:
           name: Audit Backend
           command: |
@@ -145,6 +145,7 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
+      - run: mkdir /tmp/saveme
       - run: yum -y install tar gzip
       - run:
           name: Ensure backend infrastructure exist
@@ -153,9 +154,28 @@ jobs:
               --template-file .circleci/files/backend.yml \
               --stack-name "backend-${CIRCLE_WORKFLOW_ID:0:7}" \
               --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}" \
-              --tags 'Key=project,Value=udapeople-${CIRCLE_WORKFLOW_ID:0:7}' 
+              --tags 'Key=project,Value=udapeople-${CIRCLE_WORKFLOW_ID:0:7}'
+
+      - run:
+          name: Get and save public DNS of EC2 instance to https://memstash.io/
+          command: | 
+            PUBLIC_DNS=$(aws ec2 describe-instances --region ${AWS_DEFAULT_REGION} \
+              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --query "Reservations[*].Instances[0].PublicDnsName" \
+              --output text) > /tmp/saveme/backend_url.txt       
             curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
-            --request PUT --data "${BACKEND_IP}" https://api.memstash.io/values/backend_ip
+            --request PUT --data "${PUBLIC_DNS}" https://api.memstash.io/values/public_dns
+      - persist_to_workspace:
+          root: /tmp/saveme
+          paths:
+            - backend_url.txt
+      - run:
+          name: Save old bucket arn
+          command: echo "arn:aws:s3:::`aws s3 ls | awk '{ print $3 } ' | grep udapeople-frontend-deployment`" > /tmp/saveme/old_s3arn.txt
+      - persist_to_workspace:
+          root: /tmp/saveme
+          paths:
+            - old_s3arn.txt                          
       - run:
           name: Ensure frontend infrastructure exist
           command: |
@@ -173,6 +193,8 @@ jobs:
       - checkout
       - add_ssh_keys:
           fingerprints: ["0b:f0:04:ba:01:e9:18:d0:78:b4:48:93:6d:fc:9a:22"]
+      - attach_workspace:
+          at: /tmp/saveme          
       - run:
           name: Install Ansible
           command: |
@@ -182,18 +204,20 @@ jobs:
       - run:
           name: Set up inventory file
           command: |
-            cd .circleci/ansible
-            echo "[web]" >> inventory.txt
-            export BACKEND_IP=$(curl -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
-            --request GET https://api.memstash.io/values/backend_ip)
-            echo ${BACKEND_IP}
-            echo "$BACKEND_IP" >> inventory.txt
-            cat inventory.txt
+            echo "[backend]" > .circleci/ansible/inventory.txt
+            cat /tmp/saveme/backend_url.txt >> .circleci/ansible/inventory.txt
+            echo .circleci/ansible/inventory.txt
+            cat .circleci/ansible/inventory.txt
       - run:
           name: Run playbook
           command: |
+            ls -l /tmp/saveme
             cd .circleci/ansible
             ansible-playbook -i inventory.txt configure-main.yml
+      - persist_to_workspace:
+          root: /tmp/saveme
+          paths:
+            - backend_url.txt            
 
   run-migrations:
     docker:
@@ -217,6 +241,8 @@ jobs:
     docker:
       - image: python:3.7-alpine3.11
     steps:
+      - attach_workspace:
+          at: /tmp/saveme
       - checkout
       - run:
           name: Install dependencies
@@ -226,22 +252,42 @@ jobs:
       - run:
           name: Get backend url
           command: |
-            export BACKEND_IP=$(aws ec2 describe-instances \
-              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID}" \
-              --query 'Reservations[*].Instances[*].PublicIpAddress' \
-              --output text)
-            export API_URL="http://${BACKEND_IP}:3030"
-            echo "${API_URL}"
-            curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
-            --request PUT --data "${API_URL}" https://api.memstash.io/values/API_URL
-      - run:
-          name: Deploy frontend objects
-          command: |
-            cd frontend
-            npm install
+            BACKEND_URL=$(cat /tmp/saveme/backend_url.txt)
+            echo BACKEND_URL: ${BACKEND_URL}
+            export API_URL=http://${BACKEND_URL}:3030
+            echo "API_URL=$API_URL" >> frontend/.env 
+            cd frontend            
             npm run build
-            cd dist
-            aws s3 cp ./frontend/dist s3://udas3-${CIRCLE_WORKFLOW_ID:0:7}" --recursive
+      - run:
+          name: "Deploy frontend objects"
+          command: |
+            sudo npm install webpack-dev-server -g
+            cd frontend
+            sudo npm i
+            sudo npm run build    
+      - run:
+          name: Compress build files
+          command: |
+            cd frontend/dist
+            tar -zcvf /tmp/saveme/frontend.tar.gz ./
+      - persist_to_workspace:
+          root: /tmp/saveme
+          paths:
+            - frontend.tar.gz 
+      - run:
+            name: Extract frontend build
+            command: |
+              echo `ls /tmp/saveme`
+              mkdir ~/frontend
+              cp /tmp/saveme/frontend.tar.gz ~/frontend
+              cd ~/frontend
+              tar -zxvf frontend.tar.gz
+              echo `ls -la`
+      - run:
+            name: deploy to s3 bucket
+            command: |
+              cd ~/frontend
+              aws s3 sync . s3://udas3-${CIRCLE_WORKFLOW_ID:0:7}                       
       - destroy-environment
       - revert-migrations
         
@@ -262,9 +308,9 @@ jobs:
           command: |
             cd .circleci/ansible
             echo "[web]" >> inventory.txt
-            export BACKEND_IP=$(curl -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
-            --request GET https://api.memstash.io/values/backend_ip)
-            echo "$BACKEND_IP" >> inventory.txt
+            export PUBLIC_DNS=$(curl -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
+            --request GET https://api.memstash.io/values/public_dns)
+            echo "$PUBLIC_DNS" >> inventory.txt
             cat inventory.txt
       - run:
           name: Build and deploy backend
@@ -282,38 +328,39 @@ jobs:
 
   smoke-test:
     docker:
-        - image: python:3.7-alpine3.11
+      - image: python:3.7-alpine3.11
     steps:
+      - attach_workspace:
+            at: /tmp/saveme
+      - checkout
       - run:
-          name: Install dependencies
+          name: Install system dependencies
           command: |
-            apk add --update curl
-            pip install awscli
+            apk add --no-cache curl
+            apk add --no-cache --upgrade bash
+            apk add --no-cache --update ansible
+            apk add --no-cache openssh-client
+            apk add --update nodejs npm
+            pip3 install awscli
       - run:
-          name: Smoke test backend
+          name: Smoke test on frontend
           command: |
-            export BACKEND_IP=$(aws ec2 --region us-west-2 describe-instances \
-                  --filters Name=instance-state-name,Values=running Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7} \
-                  --query 'Reservations[*].Instances[*].PublicIpAddress' \
-                  --output text)
-            EC2_URL="http://${BACKEND_IP}:3030/api/status"
-            curl ${EC2_URL}
-            if curl -s ${EC2_URL} | grep " not ok"
-            then
-              return 0
-            else
-              return 0
-            fi 
-      - run:
-          name: Smoke test backend
-          command: |
-            URL="http://udapeople-${WorkflowID}.s3-website-us-west-2.amazonaws.com/#/employees"
+            URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website.us-west-2.amazonaws.com/#/employees"
             if curl -s ${URL} | grep "Welcome"
             then
               return 0
             else
-              return 0
+              return 1
             fi
+      - run:
+          name: Smoke test on backend
+          command: |
+            BACKEND_IP=$(aws ec2 describe-instances \
+              --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --query 'Reservations[*].Instances[*].PublicIpAddress' \
+              --output text)
+            echo ${BACKEND_IP}
+            curl "http://${BACKEND_IP}:3030/api/status"
       - destroy-environment
       - revert-migrations
 
