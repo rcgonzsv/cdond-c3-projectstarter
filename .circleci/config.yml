@@ -242,14 +242,10 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apk add --no-cache curl
-            apk add --no-cache tar
-            apk add --no-cache gzip
-            apk add --no-cache ansible
-            apk add --no-cache nodejs
-            apk add --no-cache npm
-            apk add --no-cache bash
-            pip install awscli
+            apk add --update tar gzip ansible nodejs npm curl
+            apk add --update bash
+            apk add --no-cache ansible 
+            pip install awscli            
       - run:
           name: Get backend url
           command: |
