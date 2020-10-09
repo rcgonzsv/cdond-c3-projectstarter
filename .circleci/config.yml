@@ -49,28 +49,26 @@ commands:
             echo "TYPEORM_DATABASE=${TYPEORM_DATABASE}" >> backend/.env
 
   revert-migration:
-    description: Revert the last migration if smoke tests are failing in the current workflow
     steps:
+      - create-env-file    
       - run:
-          when: on_fail
-          name: Install dependencies
+          name: install backend dependencies
           command: |
-            curl -sL https://rpm.nodesource.com/setup_12.x | bash -
-            yum -y install nodejs
-      - checkout
-      - create-env-file
+            cd backend
+            npm i
+          when: on_fail
       - run:
-          when: on_fail
-          name: Load migration status from https://memstash.io/ and revert migrations if necessary
+          name: Revert database migration if it has already ran
           command: |
-            DBMIGRATION_FLAG=$(curl -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" --request GET https://api.memstash.io/values/migration_completion)
-            echo ${DBMIGRATION_FLAG}
-            if [[ ${DBMIGRATION_FLAG} == 1 ]]
-            then
+            if curl -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
+            --request GET https://api.memstash.io/values/migrations | grep "true"
+            then 
               cd backend
-              npm install
               npm run migrations:revert
+            else 
+              echo "no revert migration needed"
             fi
+          when: on_fail
 
 
 orbs:
@@ -218,22 +216,22 @@ jobs:
 
   run-migration:
     docker:
-      - image: circleci/node:13.8.0
+      - image: circleci/node
     steps:
       - checkout
-      - create-env-file     
+      - create-env-file
+      - npm-install:
+          end: "backend"
       - run:
-          name: Run migrations and save status to https://memstash.io/
+          name: Run DB Migration
           command: |
-            pwd
-            cd backend
-            npm install
-            npm run migrations > migrations.txt            
-            curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}"  --request PUT \
-              --data $( grep -c "No migrations are pending" migrations.txt ) \
-              https://api.memstash.io/values/migration_completion
-            cat migrations.txt
-            pwd 
+            cd backend && npm install
+            npm run migrations
+      - run:
+          name: Log to memstash
+          command: |
+            curl -H "Content-Type: text/plain" -H "token: ${CIRCLE_WORKFLOW_ID:0:7}" \
+            --request PUT --data "true" https://api.memstash.io/values/migrations
       - destroy-environment
 
   deploy-frontend:
