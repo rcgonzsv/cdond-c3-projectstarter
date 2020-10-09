@@ -442,7 +442,7 @@ workflows:
           requires: [deploy-backend]
       - smoke-test:
           requires: [deploy-frontend, deploy-backend]
-      - cloudfront-update:
+      - deploy-cloudfront:
           requires: [smoke-test]
       - cleanup-old-resources:
-          requires: [cloudfront-update]
+          requires: [deploy-cloudfront]
