@@ -149,7 +149,7 @@ jobs:
             cd backend
             npm audit fix --audit-level=critical --force
 
-  deploy-infra:
+  deploy-infrastructure:
     docker:
       - image: amazon/aws-cli
     steps:
