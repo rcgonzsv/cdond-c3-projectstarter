@@ -347,7 +347,7 @@ jobs:
               exit 1
             fi
 
-      - revert-migrations
+      - revert-migration
       - destroy-environment
 
   deploy-cloudfront:
