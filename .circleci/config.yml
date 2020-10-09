@@ -41,7 +41,6 @@ commands:
             curl -sL https://rpm.nodesource.com/setup_12.x | bash -
             yum -y install nodejs
       - checkout
-      - create-env-file
       - run:
           when: on_fail
           name: Load migration status from https://memstash.io/ and revert migrations if necessary
@@ -198,38 +197,12 @@ jobs:
           paths:
             - project/.circleci/ansible/inventory.txt
       - destroy-environment
-  configure-infrastructure:
-    docker:
-        - image: python:3.7-alpine3.11
-    steps:
-      - checkout
-      - add_ssh_keys:
-          fingerprints: ["0b:f0:04:ba:01:e9:18:d0:78:b4:48:93:6d:fc:9a:22"]
-      - run:
-          name: Install dependencies
-          command: |
-            apk add --update tar gzip ansible nodejs npm curl
-            pip install awscli
-      - run:
-          name: Set up inventory file
-          command: |
-            cd .circleci/ansible
-            echo "[web]" >> inventory.txt
-            URLS=$(curl -H "token: ${CIRCLE_WORKFLOW_ID}" --request GET https://api.memstash.io/values/url_${CIRCLE_WORKFLOW_ID})
-            echo "$URLS" >> inventory.txt
-            cat inventory.txt
-      - run:
-          name: Configure server with ansible
-          command: |
-            cd .circleci/ansible
-            ansible-playbook -i inventory.txt configure-main.yml           
 
-  run-migrations:
+  run-migration:
     docker:
       - image: circleci/node:13.8.0
     steps:
-      - checkout
-      - create-env-file      
+      - checkout     
       - run:
           name: Run migrations and save status to https://memstash.io/
           command: |
@@ -242,7 +215,7 @@ jobs:
               https://api.memstash.io/values/migration_completion
             cat migrations.txt
             pwd 
-      - destroy-environment  
+      - destroy-environment
 
   deploy-frontend:
     docker:
@@ -284,6 +257,8 @@ jobs:
           command: |          
             aws s3 cp ./frontend/dist s3://udas3-"${CIRCLE_WORKFLOW_ID:0:7}" --recursive  
             pwd                      
+      - revert-migration
+      - destroy-environment
 
   deploy-backend:
     docker:
@@ -318,8 +293,7 @@ jobs:
             tar -czvf ../../backend.tar.gz ../../backend
             ansible-playbook -i inventory.txt deploy-main.yml
             pwd
-
-      - revert-migrations
+      - revert-migration
       - destroy-environment
 
   smoke-test:
@@ -402,7 +376,7 @@ jobs:
               echo "Delete old backend stack"              
               aws cloudformation delete-stack --stack-name backend-${OldWorkflowID}
             fi 
-      - revert-migrations
+      - revert-migration
       - destroy-environment
 
   cleanup-old-resources:
@@ -441,10 +415,10 @@ workflows:
             branches:
               only:
                 - master
-      - run-migrations:
+      - run-migration:
           requires: [deploy-infrastructure]
       - deploy-backend:    
-          requires: [run-migrations]
+          requires: [run-migration]
       - deploy-frontend:
           requires: [deploy-backend]
       - smoke-test:
