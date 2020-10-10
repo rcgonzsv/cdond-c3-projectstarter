@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  slack: circleci/slack@3.4.2
+  #slack: circleci/slack@3.4.2
   python: circleci/python@1.0.0  
 
 commands:
@@ -77,8 +77,8 @@ jobs:
             cd frontend
             npm i
             npm run build
-      - slack/status:
-          fail_only: true
+      #- slack/status:
+          #fail_only: true
             
   build-backend:
     docker:
@@ -91,8 +91,8 @@ jobs:
             cd backend
             npm i
             npm run build
-      - slack/status:
-          fail_only: true
+      #- slack/status:
+          #fail_only: true
             
   test-frontend:
     docker:
@@ -110,8 +110,8 @@ jobs:
             JEST_JUNIT_OUTPUT_DIR: /tmp/reports/junit/
       - store_test_results:
           path: /tmp/reports/junit/     
-      - slack/status:
-          fail_only: true
+      #- slack/status:
+          #fail_only: true
           
   test-backend:
     docker:
@@ -129,8 +129,8 @@ jobs:
             JEST_JUNIT_OUTPUT_DIR: /tmp/reports/junit/
       - store_test_results:
           path: /tmp/reports/junit/
-      - slack/status:
-          fail_only: true
+      #- slack/status:
+          #fail_only: true
             
   analyze-frontend:
     docker:
@@ -143,8 +143,8 @@ jobs:
             cd frontend
             npm i
             npm audit fix --audit-level=critical              
-      - slack/status:
-          fail_only: true            
+      #- slack/status:
+          #fail_only: true            
             
   analyze-backend:
     docker:
@@ -157,8 +157,8 @@ jobs:
             cd backend
             npm i
             npm audit fix --audit-level=critical
-      - slack/status:
-          fail_only: true
+      #- slack/status:
+          #fail_only: true
             
   deploy-infra:
     docker:
@@ -209,8 +209,8 @@ jobs:
           paths:
             - project/.circleci/ansible/inventory.txt
       - auto-destruct-env
-      - slack/status:
-          fail_only: true 
+      #- slack/status:
+          #fail_only: true 
 
   deploy-backend:
     docker:
@@ -236,7 +236,7 @@ jobs:
             apk add --update tar gzip ansible nodejs npm
             pip install awscli
             pwd
-      - create-env-file
+      - write-envvar-file
       - run:
           name: Configure server
           command: |
@@ -247,8 +247,8 @@ jobs:
             pwd
       - revert-migration      
       - auto-destruct-env
-      - slack/status:
-          fail_only: true
+      #- slack/status:
+          #fail_only: true
 
   run-migrations:
     docker:
@@ -268,8 +268,8 @@ jobs:
               https://api.memstash.io/values/migration_completion
             cat migrations.txt
             pwd      
-      - slack/status:
-          fail_only: true
+      #- slack/status:
+          #fail_only: true
 
   deploy-frontend:
     docker:
@@ -313,8 +313,8 @@ jobs:
             pwd
       - revert-migration
       - auto-destruct-env
-      - slack/status:
-          fail_only: true
+      #- slack/status:
+          #fail_only: true
 
   smoke-test:
     docker:
@@ -349,8 +349,8 @@ jobs:
             fi
       - revert-migration
       - auto-destruct-env
-      - slack/status:
-          fail_only: true 
+      #- slack/status:
+          #fail_only: true 
                       
   deploy-or-update-cloudfront:
     docker:
@@ -398,8 +398,8 @@ jobs:
               aws cloudformation delete-stack --stack-name udapeople-backend-${OldWorkflowID}
             fi
       - auto-destruct-env
-      - slack/status:
-          fail_only: true
+      #- slack/status:
+          #fail_only: true
 
 workflows:
   default:
