@@ -345,51 +345,34 @@ jobs:
       - revert-migration
       - destroy-environment
 
-  deploy-cloudfront:
+  cloudfront-update:
     docker:
-      - image: python:3.7-alpine3.11
+        - image: python:3.7-alpine3.11
     steps:
-      - checkout    
-      - run:
-          name: Install dependencies
-          command: |
-            apk add --update curl
-            apk add --update bash
-            pip install awscli
+      - checkout
       - add_ssh_keys:
           fingerprints: ["0b:f0:04:ba:01:e9:18:d0:78:b4:48:93:6d:fc:9a:22"]
       - run:
+          name: Install dependencies
+          command: |
+            apk add --update nodejs npm curl
+            pip install awscli
+      - run:
           name: Update cloudfront distribution
           command: |
-            set TERM=xterm
-            export OldWorkflowID=$(aws cloudformation list-exports --query "Exports[?Name=='WorkflowID'].Value" --no-paginate --output text)
-            export STACK_LIST=$(aws cloudformation list-stacks --query "StackSummaries[*].StackName" --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE DELETE_FAILED --no-paginate --output text)
-            echo Old Workflow Id: "${OldWorkflowID}"
-            echo Stack List: "${STACK_LIST}"
-            if [ -n "${OldWorkflowID}" ]
-            then
-            echo "Update existing CloudFront stack"
-            aws cloudformation update-stack  \
+            export OldWorkflowID=$(aws cloudformation \
+              list-exports --query "Exports[?Name==\`WorkflowID\`].Value" \
+              --no-paginate --output text)
+            export STACKS=$(aws cloudformation list-stacks --query "StackSummaries[*].StackName" \
+              --stack-status-filter CREATE_COMPLETE --no-paginate --output text)
+            echo Old Workflow Id: "$OldWorkflowID"
+            echo "$STACKS[*]"
+            aws cloudformation deploy \
+              --template-file .circleci/files/cloudfront.yml \
               --stack-name udapeople-cloudfront \
-              --template-body file://./.circleci/files/cloudfront.yml \
-              --parameters ParameterKey=WorkflowID,ParameterValue=${CIRCLE_WORKFLOW_ID:0:7} \
-              --tags 'Key=project,Value=udapeople-${CIRCLE_WORKFLOW_ID:0:7}'
-            else              
-            echo "Create CloudFront stack"
-            aws cloudformation create-stack  \
-              --stack-name udapeople-cloudfront \
-              --template-body file://./.circleci/files/cloudfront.yml \
-              --parameters ParameterKey=WorkflowID,ParameterValue=${CIRCLE_WORKFLOW_ID:0:7} \
-              --tags 'Key=project,Value=udapeople-${CIRCLE_WORKFLOW_ID:0:7}'            
-            fi
-            if [ -n "${OldWorkflowID}" ]
-            then
-              echo "Empty old S3 bucket and delete old frontend stack"
-              aws s3 rm s3://udapeople-frontend-${OldWorkflowID}/ --recursive
-              aws cloudformation delete-stack --stack-name frontend-${OldWorkflowID}
-              echo "Delete old backend stack"              
-              aws cloudformation delete-stack --stack-name backend-${OldWorkflowID}
-            fi 
+              --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}" \
+              --tags project=udapeople 
+
       - revert-migration
       - destroy-environment
 
@@ -437,7 +420,7 @@ workflows:
           requires: [deploy-backend]
       - smoke-test:
           requires: [deploy-frontend, deploy-backend]
-      - deploy-cloudfront:
+      - cloudfront-update:
           requires: [smoke-test]
       - cleanup-old-resources:
-          requires: [deploy-cloudfront]
+          requires: [cloudfront-update]
