@@ -5,6 +5,7 @@ orbs:
   python: circleci/python@1.0.0  
 
 commands:
+
   npm-install:
     parameters:
       end:
@@ -55,7 +56,7 @@ commands:
   
   revert-migration:
     steps:
-      - create-env-file    
+      - write-envvar-file   
       - run:
           name: install backend dependencies
           command: |
@@ -414,7 +415,7 @@ jobs:
           #fail_only: true
 
 workflows:
-  default:
+  udapeople:
     jobs:
       - build-frontend
       - build-backend
