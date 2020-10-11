@@ -109,7 +109,7 @@ jobs:
             JEST_JUNIT_OUTPUT_DIR: "./reports/junit/"
       - store_test_results:
           path: ./frontend/reports/junit/
-      - slack/notify-on-failure
+      #- slack/notify-on-failure
 
   test-backend:
     docker:
