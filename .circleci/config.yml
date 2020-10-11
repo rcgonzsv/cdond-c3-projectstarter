@@ -141,7 +141,7 @@ jobs:
       #- slack/status:
           #fail_only: true
             
- scan-frontend:
+scan-frontend:
     docker:
       - image: circleci/node:13.8.0
     steps:
@@ -155,7 +155,7 @@ jobs:
       #- slack/status:
           #fail_only: true            
             
-  scan-backend:
+scan-backend:
     docker:
       - image: circleci/node:13.8.0
     steps:
@@ -169,7 +169,7 @@ jobs:
       #- slack/status:
           #fail_only: true
             
-  deploy-infra:
+deploy-infra:
     docker:
       - image: amazon/aws-cli
     steps:
@@ -221,7 +221,7 @@ jobs:
       #- slack/status:
           #fail_only: true 
 
-  deploy-backend:
+deploy-backend:
     docker:
       - image: python:3.7-alpine3.11
     steps:
@@ -259,7 +259,7 @@ jobs:
       #- slack/status:
           #fail_only: true
 
-  run-migrations:
+run-migrations:
     docker:
       - image: circleci/node
     steps:
@@ -283,7 +283,7 @@ jobs:
       #- slack/status:
           #fail_only: true
 
-  deploy-frontend:
+deploy-frontend:
     docker:
       - image: python:3.7-alpine3.11
     steps:
@@ -328,7 +328,7 @@ jobs:
       #- slack/status:
           #fail_only: true
 
-  smoke-test:
+smoke-test:
     docker:
       - image: amazon/aws-cli
     steps:
@@ -364,7 +364,7 @@ jobs:
       #- slack/status:
           #fail_only: true 
                       
-  deploy-or-update-cloudfront:
+deploy-or-update-cloudfront:
     docker:
       - image: python:3.7-alpine3.11
     steps:
