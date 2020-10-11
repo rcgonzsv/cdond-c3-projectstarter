@@ -1,25 +1,24 @@
+---
 
-# - name: "Makedir"
-#   file:
-#     path: /home/ubuntu/backend
-#     state: directory
-# - name: "move backend files to server."
-#   copy:
-#     src: /root/project/backend
-#     dest: /home/ubuntu
-# 
-# - name: "NPM Install"
-#   shell: |
-#     cd /home/ubuntu/backend    
-#     npm install 
+- name: Copy files from circleci to server
+  copy:
+    src: /root/project/backend.tar.gz
+    dest: /home/ubuntu/
+
+- name: Unzip the project files
+  shell: |
+    cd /home/ubuntu
+    mkdir backend
+    tar -xzvf backend.tar.gz -C .
     
-- name: "Build"
+- name: Build node service
   shell: |
     cd /home/ubuntu/backend
+    npm i
     npm run build
-    
-- name: "Run it"
-  become: true
+    npm run prestart:prod
+- name: Run pm2 
   shell: |
-    cd /home/ubuntu/backend 
-    pm2 start npm -- run "start:dev"
+    cd /home/ubuntu/backend
+    ls
+    pm2 start npm -- run "start:prod"
