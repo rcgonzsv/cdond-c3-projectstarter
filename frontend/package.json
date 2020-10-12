@@ -5,12 +5,12 @@
   "description": "A frontend boilerplate with React, Redux and Typescript",
   "main": "index.js",
   "scripts": {
-    "test": "jest --runInBand",
+    "test": "jest",
     "test:watch": "jest --watch",
     "pretest:cov": "npm run lint",
     "test:cov": "jest --coverage",
     "start": "webpack-dev-server --mode development --hot --progress --color --port 3000 --open",
-    "lint": "tslint -p tsconfig.json -c tslint.json --fix",
+    "lint": "tslint -p tsconfig.json -c tslint.json",
     "build:prod": "webpack -p --progress --colors",
     "build": "webpack --mode development --progress --colors",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\""
@@ -131,7 +131,7 @@
       "raf/polyfill"
     ],
     "testRegex": ".*(spec|test)\\.(ts|tsx|js)$",
-    "setupFilesAfterEnv": ["<rootDir>/setupTests.ts"],
+    "setupTestFrameworkScriptFile": "<rootDir>/setupTests.ts",
     "snapshotSerializers": [
       "enzyme-to-json"
     ],
