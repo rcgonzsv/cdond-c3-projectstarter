@@ -344,14 +344,14 @@ jobs:
             #curl "http://${BACKEND_IP}:3030/api/status"
                     
       - run:
-          name: Smoke test frontend
+          name: Smoke test on frontend
           command: |
-            URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"            
+            URL="http://udapeople-frontend-deployment-${CIRCLE_WORKFLOW_ID:0:7}.s3-website.us-east-1.amazonaws.com/#/employees"
             if curl -s ${URL} | grep "Welcome"
             then
-            return 0
+              return 0
             else
-            return 1
+              return 1
             fi
       - revert-migration
       - auto-destruct-env
