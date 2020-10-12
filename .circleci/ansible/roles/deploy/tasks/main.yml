@@ -1,24 +1,23 @@
 ---
 
-- name: Copy files from circleci to server
+- name: Copy files from circleci to backend server
   copy:
-    src: /root/project/backend.tar.gz
+    src: /root/project/backend
     dest: /home/ubuntu/
 
-- name: Unzip the project files
+- name: Stop PM2
+  ignore_errors: yes
   shell: |
-    cd /home/ubuntu
-    mkdir backend
-    tar -xzvf backend.tar.gz -C .
-    
+    pm2 stop backend
+    pm2 delete backend
 - name: Build node service
   shell: |
     cd /home/ubuntu/backend
     npm i
+    npm audit fix --audit-level=critical --force
     npm run build
-    npm run prestart:prod
-- name: Run pm2 
+      
+- name: Start pm2 service
   shell: |
     cd /home/ubuntu/backend
-    ls
-    pm2 start npm -- run "start:prod"
+    pm2 start npm --name backend -- start
