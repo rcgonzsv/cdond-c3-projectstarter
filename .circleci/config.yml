@@ -337,27 +337,21 @@ jobs:
       - run:
           name: Smoke test backend
           command: |
-            export BACKEND_IP=$(aws ec2 --region us-east-1 describe-instances \
-                  --filters Name=instance-state-name,Values=running Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7} \
-                  --query 'Reservations[*].Instances[*].PublicIpAddress' \
-                  --output text)
-            EC2_URL="http://${BACKEND_IP}:3030/api/status"
-            if curl -s ${EC2_URL} | grep "ok"
-            then
-              exit 0
-            else
-              exit 0
-            fi            
+            BACKEND_IP=$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --output text)
+            curl "http://${BACKEND_IP}:3030/api/status"
+                    
       - run:
           name: Smoke test frontend
           command: |
-            pwd
-            APP_URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employee"
-            if curl -s ${APP_URL} | grep "Welcome"
+            URL="http://udapeople-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-us-east-1.amazonaws.com/#/employees"            
+            if curl -s ${URL} | grep "Welcome"
             then
-              exit 0
+            return 0
             else
-              exit 0
+            return 1
             fi
       - revert-migration
       - auto-destruct-env
